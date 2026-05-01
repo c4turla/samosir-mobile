@@ -1,42 +1,55 @@
-# samosir-mobile
+# SAMOSIR Mobile 🚢
+**Sistem Aplikasi Monitoring & Pelayanan Mandiri Pelabuhan (SAMOSIR)**
 
-This template should help get you started developing with Vue 3 in Vite.
+SAMOSIR Mobile adalah platform antarmuka berbasis web/mobile yang dirancang untuk mendigitalisasi operasional di Pelabuhan Perikanan Nusantara (PPN) Sibolga. Aplikasi ini memungkinkan pengelola kapal dan masyarakat umum untuk berinteraksi dengan layanan pelabuhan secara efisien melalui perangkat mobile.
 
-## Recommended IDE Setup
+## ✨ Fitur Utama
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+### 1. ⚓ Pengelolaan Multi-Armada (Vessel Manager)
+*   **Vessel Switcher**: Beralih antar kapal yang dikelola dalam satu dashboard.
+*   **Status Dokumen**: Monitoring masa berlaku dokumen perizinan (SIPI, SIUP, Sertifikat Kelayakan) dengan indikator real-time.
+*   **Estimasi Sandar**: Informasi sisa waktu sandar kapal di dermaga.
 
-## Recommended Browser Setup
+### 👥 2. Mode Masyarakat Umum (Public Access)
+*   **Informasi Komoditas**: Update stok dan estimasi harga ikan harian di pelabuhan.
+*   **Manifest Kapal**: Mengetahui kapal mana yang sedang membawa muatan tertentu (Cakalang, Tuna, Udang, dll).
+*   **Port Activity**: Pantau pergerakan kapal yang akan datang dan berangkat.
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+### 🌤️ 3. Integrasi Data Real-Time
+*   **Weather API**: Data cuaca maritim spesifik lokasi PPN Sibolga menggunakan Open-Meteo API.
+*   **Smart Icons**: Visualisasi kondisi cuaca (Cerah, Berawan, Hujan, Badai) secara dinamis.
 
-## Type Support for `.vue` Imports in TS
+### 💬 4. Sistem Komunikasi & Bantuan
+*   **Role-Based Chat**: Kategori chat yang disesuaikan (Petugas/Klien untuk Pengelola, Petugas/Pengelola untuk Umum).
+*   **Helpdesk Banner**: Akses cepat untuk bantuan teknis dan pembuatan tiket bantuan.
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+### 🌙 5. UI/UX Premium
+*   **Full Dark Mode Support**: Transisi tema yang halus untuk kenyamanan penggunaan di malam hari.
+*   **Modern Mobile Interface**: Dioptimalkan untuk pengalaman mobile-first menggunakan Tailwind CSS v4.
 
-## Customize configuration
+## 🚀 Tech Stack
+*   **Framework**: [Vue 3](https://vuejs.org/) (Script Setup + TypeScript)
+*   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+*   **Build Tool**: [Vite](https://vitejs.dev/)
+*   **Icons**: [Lucide Vue Next](https://lucide.dev/)
+*   **API**: [Open-Meteo](https://open-meteo.com/)
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+## 🛠️ Instalasi
 
-## Project Setup
+1. Clone repositori:
+```bash
+git clone https://github.com/c4turla/samosir-mobile.git
+```
 
-```sh
+2. Instal dependensi:
+```bash
 npm install
 ```
 
-### Compile and Hot-Reload for Development
-
-```sh
+3. Jalankan development server:
+```bash
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
+---
+Developed with ❤️ by **kendariweb.com**
