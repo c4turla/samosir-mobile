@@ -3,29 +3,40 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <h2 class="text-2xl font-bold text-gray-900 dark:text-white leading-tight">Profil Saya</h2>
-      <button class="bg-gray-100 dark:bg-slate-800 p-2.5 rounded-2xl text-gray-600 dark:text-gray-300">
-        <Settings class="w-6 h-6" />
+      <button @click="toggleDarkMode" :class="['p-2.5 rounded-2xl transition-colors', isDarkMode ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300']">
+        <component :is="isDarkMode ? Sun : Moon" class="w-6 h-6" />
       </button>
     </div>
 
     <!-- Profile Card -->
     <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-gray-100 dark:border-slate-800 shadow-sm mb-8 text-center">
       <div class="relative inline-block mb-4">
-        <div class="w-24 h-24 bg-primary-100 dark:bg-primary-900/30 rounded-[2rem] flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-xl">
-          <User class="w-12 h-12 text-primary-600 dark:text-primary-400" />
+        <div class="w-24 h-24 bg-primary-100 dark:bg-primary-900/30 rounded-[2rem] flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden">
+          <img v-if="userProfile.photo" :src="userProfile.photo" class="w-full h-full object-cover" />
+          <User v-else class="w-12 h-12 text-primary-600 dark:text-primary-400" />
         </div>
-        <button class="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full border-2 border-white dark:border-slate-800 shadow-lg">
+        <button @click="router.push('/edit-profile')" class="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full border-2 border-white dark:border-slate-800 shadow-lg">
           <Camera class="w-3.5 h-3.5" />
         </button>
       </div>
-      <h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">Capt. Heri Wibowo</h3>
-      <p class="text-xs text-gray-400 font-medium mt-1">ID: HW-992120 • Pengelola Kapal</p>
+      <h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+        {{ userProfile.name || (isLoading ? 'Memuat...' : 'User') }}
+      </h3>
+      <p class="text-xs text-gray-400 font-medium mt-1">
+        {{ userProfile.email || '-' }} • {{ formatRole(userProfile.role) }}
+      </p>
       
       <div class="mt-6 flex items-center justify-center space-x-2">
         <span class="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center">
           <CheckCircle2 class="w-3 h-3 mr-1" /> Terverifikasi
         </span>
       </div>
+      <button 
+        @click="router.push('/edit-profile')" 
+        class="mt-4 px-6 py-2.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-xs font-bold rounded-2xl hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
+      >
+        Edit Profil
+      </button>
     </div>
 
     <!-- Dark Mode Toggle -->
@@ -37,7 +48,7 @@
           </div>
           <div>
             <h4 class="text-sm font-bold text-gray-800 dark:text-gray-100">Mode Gelap</h4>
-            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Optimalkan baterai & kenyamanan mata</p>
+            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Optimalkan baterai &amp; kenyamanan mata</p>
           </div>
         </div>
         <button 
@@ -49,8 +60,8 @@
       </div>
     </section>
 
-    <!-- Vessel Quick Info / QR -->
-    <section class="bg-slate-900 rounded-[2.5rem] p-6 text-white mb-8 relative overflow-hidden group">
+    <!-- Vessel Quick Info / QR (Pengelola Only) -->
+    <section v-if="userProfile.role === 'pengelola'" class="bg-slate-900 rounded-[2.5rem] p-6 text-white mb-8 relative overflow-hidden group">
       <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-all"></div>
       <div class="relative z-10 flex items-center space-x-4">
         <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-900 shadow-xl shadow-slate-900/50">
@@ -58,7 +69,7 @@
         </div>
         <div>
           <h4 class="font-bold text-lg leading-tight">Digital Vessel ID</h4>
-          <p class="text-xs opacity-60 mt-1">3 Kapal Terdaftar</p>
+          <p class="text-xs opacity-60 mt-1">Kapal Terdaftar</p>
         </div>
       </div>
       <button class="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
@@ -67,9 +78,32 @@
       </button>
     </section>
 
+    <!-- Info Card (Umum Only) - Replaces Digital Vessel ID -->
+    <section v-if="userProfile.role === 'umum'" class="bg-primary-600 rounded-[2.5rem] p-6 text-white mb-8 relative overflow-hidden group">
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-all"></div>
+      <div class="relative z-10 flex items-center space-x-4">
+        <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary-600 shadow-xl">
+          <Ship class="w-10 h-10" />
+        </div>
+        <div>
+          <h4 class="font-bold text-lg leading-tight">Jadwal Kapal</h4>
+          <p class="text-xs opacity-70 mt-1">Pantau kedatangan & keberangkatan</p>
+        </div>
+      </div>
+      <button @click="router.push('/schedule')" class="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
+        <CalendarDays class="w-4 h-4" />
+        <span>Lihat Jadwal Kapal</span>
+      </button>
+    </section>
+
     <!-- Menu Items -->
     <section class="space-y-3">
-      <div v-for="item in menuItems" :key="item.label" class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-slate-800/50 active:scale-[0.99]">
+      <div 
+        v-for="item in filteredMenuItems" 
+        :key="item.label" 
+        @click="item.action ? item.action() : null"
+        class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-slate-800/50 active:scale-[0.99] cursor-pointer"
+      >
         <div class="flex items-center space-x-3">
           <div :class="['p-2 rounded-xl flex items-center justify-center', item.bg]">
             <component :is="item.icon" :class="['w-5 h-5', item.color]" />
@@ -100,10 +134,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
-  Settings, 
   User, 
   Camera, 
   CheckCircle2, 
@@ -117,15 +150,78 @@ import {
   LogOut,
   HelpCircle,
   Moon,
-  Sun
+  Sun,
+  Ship,
+  CalendarDays,
+  Fish,
+  MessageCircle,
+  MapPin,
+  Info
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const isDarkMode = ref(false)
 
+const isLoading = ref(true)
+const userProfile = ref({
+  name: localStorage.getItem('userName') || '',
+  email: '',
+  role: localStorage.getItem('userRole') || 'umum',
+  photo: ''
+})
+
+const fetchProfile = async () => {
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    const response = await fetch(`${baseUrl}/me`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      const userData = data.data || data
+      
+      if (userData) {
+        userProfile.value = {
+          name: userData.name || userProfile.value.name,
+          email: userData.email || '',
+          role: userData.role || userProfile.value.role,
+          photo: userData.photo || ''
+        }
+        localStorage.setItem('userName', userProfile.value.name)
+        localStorage.setItem('userRole', userProfile.value.role)
+      }
+    } else if (response.status === 401) {
+      handleLogout()
+    }
+  } catch (error) {
+    console.error('Gagal mengambil data profile:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 onMounted(() => {
   isDarkMode.value = document.documentElement.classList.contains('dark')
+  fetchProfile()
 })
+
+const formatRole = (role: string) => {
+  if (role === 'pengelola_kapal' || role === 'pengelola') return 'Pengelola Kapal'
+  if (role === 'umum') return 'Masyarakat Umum'
+  return role
+}
 
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value
@@ -141,16 +237,30 @@ const toggleDarkMode = () => {
 const handleLogout = () => {
   localStorage.removeItem('userRole')
   localStorage.removeItem('userName')
+  localStorage.removeItem('token')
   router.push('/login')
 }
 
-const menuItems = [
-  { label: 'Informasi Armada', icon: Shield, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400' },
-  { label: 'Tanda Tangan Digital', icon: PenTool, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-600 dark:text-amber-400', badge: 'Setup' },
-  { label: 'Metode Pembayaran', icon: CreditCard, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-600 dark:text-emerald-400' },
-  { label: 'Notifikasi', icon: Bell, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', badge: '3' },
-  { label: 'Hubungi Support', icon: HelpCircle, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400' },
+// Menu items for Pengelola
+const pengelolaMenuItems = [
+  { label: 'Informasi Armada', icon: Shield, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => {} },
+  { label: 'Tanda Tangan Digital', icon: PenTool, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-600 dark:text-amber-400', badge: 'Setup', action: () => {} },
+  { label: 'Notifikasi', icon: Bell, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', badge: '3', action: () => {} },
+  { label: 'Hubungi Support', icon: HelpCircle, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400', action: () => {} },
 ]
+
+// Menu items for Umum
+const umumMenuItems = [
+  { label: 'Jadwal Kapal', icon: CalendarDays, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => router.push('/schedule') },
+  { label: 'Komoditas Ikan', icon: Fish, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-600 dark:text-emerald-400', action: () => router.push('/commodity') },
+  { label: 'Chat Pengelola', icon: MessageCircle, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', action: () => router.push('/chat') },
+  { label: 'Notifikasi', icon: Bell, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-600 dark:text-amber-400', action: () => {} },
+  { label: 'Tentang PPN Sibolga', icon: Info, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400', action: () => router.push('/about-ppn') },
+]
+
+const filteredMenuItems = computed(() => {
+  return userProfile.value.role === 'pengelola' ? pengelolaMenuItems : umumMenuItems
+})
 </script>
 
 <style scoped>

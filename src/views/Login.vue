@@ -16,19 +16,25 @@
 
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
       <div class="bg-white dark:bg-slate-900 px-8 py-10 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-3xl border border-slate-100 dark:border-slate-800">
-        <div class="space-y-6">
+        
+        <div v-if="errorMessage" class="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm border border-red-200 dark:border-red-800">
+          {{ errorMessage }}
+        </div>
+
+        <form @submit.prevent="handleLogin" class="space-y-6">
           <div>
             <label for="email" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Email atau Username</label>
             <div class="mt-2">
               <input 
                 id="email" 
-                name="email" 
+                v-model="form.email"
                 type="text" 
                 required 
-                class="block w-full rounded-xl border-0 py-3 text-slate-900 dark:text-white dark:bg-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm"
+                class="block w-full rounded-xl border-0 px-4 py-3 text-slate-900 dark:text-white dark:bg-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm"
                 placeholder="Masukkan kredensial"
               />
             </div>
+            <p v-if="errors.email" class="mt-1 text-xs text-red-500">{{ errors.email[0] }}</p>
           </div>
 
           <div>
@@ -41,24 +47,27 @@
             <div class="mt-2">
               <input 
                 id="password" 
-                name="password" 
+                v-model="form.password"
                 type="password" 
                 required 
-                class="block w-full rounded-xl border-0 py-3 text-slate-900 dark:text-white dark:bg-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm"
+                class="block w-full rounded-xl border-0 px-4 py-3 text-slate-900 dark:text-white dark:bg-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm"
                 placeholder="••••••••"
               />
             </div>
+            <p v-if="errors.password" class="mt-1 text-xs text-red-500">{{ errors.password[0] }}</p>
           </div>
 
           <div class="pt-2">
             <button 
-              @click="handleLogin"
-              class="flex w-full justify-center rounded-xl bg-primary-600 px-3 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-600/30 hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-all active:scale-[0.98]"
+              type="submit"
+              :disabled="isLoading"
+              class="flex w-full justify-center rounded-xl bg-primary-600 px-3 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-600/30 hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              Masuk Sekarang
+              <span v-if="isLoading">Memproses...</span>
+              <span v-else>Masuk Sekarang</span>
             </button>
           </div>
-        </div>
+        </form>
 
         <div class="mt-8">
           <div class="relative">
@@ -83,21 +92,85 @@
       
       <p class="mt-10 text-center text-sm text-slate-500 dark:text-slate-400">
         Belum punya akun?
-        <a href="#" class="font-bold leading-6 text-primary-600 dark:text-primary-400 hover:text-primary-500 underline underline-offset-4">Daftar Masyarakat</a>
+        <router-link to="/register" class="font-bold leading-6 text-primary-600 dark:text-primary-400 hover:text-primary-500 underline underline-offset-4">Daftar Sekarang</router-link>
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const handleLogin = () => {
-  localStorage.setItem('userRole', 'pengelola')
-  localStorage.setItem('userName', 'Capt. Heri Wibowo')
-  router.push('/')
+const form = reactive({
+  email: '',
+  password: ''
+})
+
+const errors = ref<Record<string, string[]>>({})
+const errorMessage = ref('')
+const isLoading = ref(false)
+
+const handleLogin = async () => {
+  isLoading.value = true
+  errors.value = {}
+  errorMessage.value = ''
+
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const endpoint = `${baseUrl}/login`
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(form)
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      if (response.status === 422) {
+        errors.value = data.errors || {}
+      } else {
+        throw new Error(data.message || 'Kredensial tidak valid.')
+      }
+      return
+    }
+
+    // The API wraps the response in a 'data' object
+    const payload = data.data || {}
+    console.log('Login API Response:', data);
+    console.log('User Payload:', payload.user);
+    
+    // Menyimpan token dan data user ke localStorage
+    const token = payload.token || data.token || data.access_token;
+    if (token) localStorage.setItem('token', token);
+    
+    if (payload.user) {
+      const role = payload.user.role || 'umum';
+      const name = payload.user.name || 'User';
+      
+      localStorage.setItem('userRole', role);
+      localStorage.setItem('userName', name);
+      console.log('Saved to localStorage:', { role, name });
+    } else {
+      // Jika data user tidak ada, default ke umum agar tidak salah akses
+      localStorage.setItem('userRole', 'umum');
+      localStorage.setItem('userName', 'User');
+    }
+
+    router.push('/')
+
+  } catch (err: any) {
+    errorMessage.value = err.message || 'Koneksi ke server gagal. Pastikan API menyala.'
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const handlePublicLogin = () => {

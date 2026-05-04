@@ -4,7 +4,7 @@
     <section>
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white leading-tight">Halo, {{ userName }} 👋</h2>
-        <button class="bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 p-2 rounded-xl">
+        <button @click="router.push('/profile')" class="bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 p-2 rounded-xl">
           <Settings class="w-5 h-5" />
         </button>
       </div>
@@ -24,13 +24,9 @@
         >
           <Anchor :class="['w-5 h-5', selectedVesselId === vessel.id ? 'text-white' : 'text-gray-400']" />
           <div class="text-left">
-            <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">{{ vessel.status }}</p>
+            <p class="text-[10px] font-bold uppercase tracking-wider opacity-80">{{ vessel.type }}</p>
             <p class="text-xs font-bold">{{ vessel.name }}</p>
           </div>
-        </button>
-        <button class="flex-shrink-0 px-4 py-3 rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 text-gray-400 flex items-center space-x-2">
-          <Plus class="w-4 h-4" />
-          <span class="text-xs font-bold">Tambah Kapal</span>
         </button>
       </div>
 
@@ -55,31 +51,31 @@
       <div class="grid grid-cols-2 gap-4">
         <div class="bg-indigo-600 dark:bg-indigo-700 rounded-2xl p-4 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
           <Clock class="w-6 h-6 mb-2 opacity-80" />
-          <p class="text-xs opacity-80 font-medium">Sisa Sandar</p>
-          <h3 class="text-xl font-bold mt-1">{{ currentVessel.stats.timeRemaining }}</h3>
+          <p class="text-xs opacity-80 font-medium">Alat Tangkap</p>
+          <h3 class="text-lg font-bold mt-1">{{ currentVessel.fishingGear }}</h3>
         </div>
         <div class="bg-emerald-600 dark:bg-emerald-700 rounded-2xl p-4 text-white shadow-lg shadow-emerald-200 dark:shadow-none">
           <FileCheck class="w-6 h-6 mb-2 opacity-80" />
-          <p class="text-xs opacity-80 font-medium">Status Izin</p>
-          <h3 class="text-xl font-bold mt-1">Aktif</h3>
+          <p class="text-xs opacity-80 font-medium">GT Kapal</p>
+          <h3 class="text-xl font-bold mt-1">{{ currentVessel.gt }} GT</h3>
         </div>
       </div>
 
-      <!-- Status Dokumen -->
+      <!-- Recent Activity for this vessel -->
       <section class="mt-8">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Status Dokumen - {{ currentVessel.name }}</h3>
-          <button class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</button>
+          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Riwayat Terbaru - {{ currentVessel.name }}</h3>
+          <router-link to="/schedule" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</router-link>
         </div>
         <div class="space-y-3">
-          <div v-for="doc in currentVessel.documents" :key="doc.name" class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
             <div class="flex items-center space-x-3">
-              <div :class="['p-2 rounded-xl flex items-center justify-center', doc.bg]">
-                <component :is="doc.icon" :class="['w-5 h-5', doc.text]" />
+              <div class="p-2 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20">
+                <CheckCircle2 class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">{{ doc.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Berlaku s/d {{ doc.expiry }}</p>
+                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">{{ currentVessel.type }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ currentVessel.time }} • {{ currentVessel.dock }}</p>
               </div>
             </div>
             <ChevronRight class="w-5 h-5 text-gray-300 dark:text-gray-600" />
@@ -88,23 +84,40 @@
       </section>
     </div>
 
+    <!-- Loading state for manager -->
+    <div v-if="userRole === 'pengelola' && isLoading" class="space-y-4">
+      <div class="animate-pulse grid grid-cols-2 gap-4">
+        <div class="bg-gray-200 dark:bg-slate-800 rounded-2xl h-24"></div>
+        <div class="bg-gray-200 dark:bg-slate-800 rounded-2xl h-24"></div>
+      </div>
+    </div>
+
     <!-- Public Specific Display (Directory Preview) -->
     <div v-if="userRole === 'umum'" class="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
       <section>
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Kapal di Dermaga</h3>
+          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Kapal Terbaru</h3>
           <router-link to="/schedule" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</router-link>
         </div>
-        <div class="flex space-x-4 overflow-x-auto -mx-5 px-5 no-scrollbar pb-2">
+
+        <!-- Loading state -->
+        <div v-if="isLoading" class="flex space-x-4 overflow-hidden -mx-5 px-5">
+          <div v-for="i in 3" :key="i" class="flex-shrink-0 w-44 bg-gray-200 dark:bg-slate-800 rounded-3xl h-36 animate-pulse"></div>
+        </div>
+
+        <div v-else class="flex space-x-4 overflow-x-auto -mx-5 px-5 no-scrollbar pb-2">
           <div v-for="ship in publicShips" :key="ship.id" class="flex-shrink-0 w-44 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
             <div class="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
               <Ship class="w-6 h-6 text-primary-600" />
             </div>
             <h4 class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ ship.name }}</h4>
             <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">{{ ship.dock }}</p>
-            <button class="mt-4 w-full bg-gray-50 dark:bg-slate-800 text-[10px] font-bold text-gray-600 dark:text-gray-400 py-2 rounded-xl transition-colors active:bg-gray-100">
-              Detail Kapal
-            </button>
+            <span :class="[
+              'inline-block mt-2 px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase',
+              ship.type === 'Kedatangan' 
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' 
+                : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'
+            ]">{{ ship.type }}</span>
           </div>
         </div>
       </section>
@@ -126,23 +139,29 @@
       </section>
     </div>
 
-    <!-- Commodity Spill (NEW) -->
+    <!-- Commodity Spill (Pengelola) -->
     <section v-if="userRole === 'pengelola'" class="animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Hasil Tangkapan Terbaru</h3>
-        <button class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Logbook</button>
+        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Aktivitas Terbaru</h3>
+        <router-link to="/schedule" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Logbook</router-link>
       </div>
-      <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+      <div v-if="latestActivity" class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center">
             <TrendingUp class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <p class="text-sm font-bold text-gray-800 dark:text-white">Ikan Cakalang</p>
-            <p class="text-[10px] text-gray-500">Estimasi 450 Kg • KM. SAMUDRA VII</p>
+            <p class="text-sm font-bold text-gray-800 dark:text-white">{{ latestActivity.name }}</p>
+            <p class="text-[10px] text-gray-500">{{ latestActivity.type }} • {{ latestActivity.time }}</p>
           </div>
         </div>
-        <span class="text-xs font-bold text-emerald-600">+12%</span>
+        <span :class="[
+          'text-xs font-bold',
+          latestActivity.type === 'Kedatangan' ? 'text-emerald-600' : 'text-blue-600'
+        ]">{{ latestActivity.type === 'Kedatangan' ? '📥' : '📤' }}</span>
+      </div>
+      <div v-else class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm text-center">
+        <p class="text-xs text-gray-400">Belum ada aktivitas terbaru</p>
       </div>
     </section>
 
@@ -152,13 +171,9 @@
         <router-link to="/commodity" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Semua Ikan</router-link>
       </div>
       <div class="grid grid-cols-2 gap-3">
-        <div class="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
-          <p class="text-[10px] font-bold text-blue-600 uppercase">Cakalang</p>
-          <p class="text-sm font-bold text-gray-800 dark:text-white mt-1">Rp 28.000 /kg</p>
-        </div>
-        <div class="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
-          <p class="text-[10px] font-bold text-indigo-600 uppercase">Tuna</p>
-          <p class="text-sm font-bold text-gray-800 dark:text-white mt-1">Rp 45.000 /kg</p>
+        <div v-for="fish in fishPrices" :key="fish.name" class="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
+          <p class="text-[10px] font-bold text-blue-600 uppercase">{{ fish.name }}</p>
+          <p class="text-sm font-bold text-gray-800 dark:text-white mt-1">Rp {{ fish.price.toLocaleString('id-ID') }} /kg</p>
         </div>
       </div>
     </section>
@@ -197,24 +212,35 @@
       </div>
     </section>
 
-    <!-- Digital Vessel ID Quick Access -->
-    <section class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-primary-100 dark:border-slate-800 shadow-sm flex items-center space-x-4">
-      <div class="w-16 h-16 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center">
-        <QrCode class="w-10 h-10 text-slate-800 dark:text-slate-200" />
+    <!-- Berita PPN Sibolga -->
+    <section class="animate-in fade-in slide-in-from-bottom-2 duration-400">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Berita PPN Sibolga</h3>
       </div>
-      <div class="flex-1">
-        <h4 class="font-bold text-gray-900 dark:text-white">Digital Vessel ID</h4>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Identitas Kapal: {{ currentVessel?.name || '...' }}</p>
+      <div class="space-y-4">
+        <div v-for="news in beritaList" :key="news.id" class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm">
+          <div class="flex items-start space-x-4">
+            <div :class="['w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0', news.bg]">
+              <component :is="news.icon" :class="['w-6 h-6', news.iconColor]" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="text-sm font-bold text-gray-900 dark:text-white leading-tight">{{ news.title }}</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{{ news.description }}</p>
+              <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2 font-medium">{{ news.date }}</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <button class="bg-primary-50 dark:bg-primary-900/30 p-2 rounded-full text-primary-600 dark:text-primary-400">
-        <Maximize class="w-5 h-5" />
-      </button>
     </section>
+
+    <!-- Bottom padding -->
+    <div class="pb-8"></div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   Clock, 
   FileCheck, 
@@ -222,8 +248,6 @@ import {
   AlertCircle, 
   ChevronRight,
   CloudLightning,
-  QrCode,
-  Maximize,
   Anchor,
   Plus,
   Settings,
@@ -234,18 +258,165 @@ import {
   CloudSun,
   Megaphone,
   Ship,
-  MessageSquare
+  MessageSquare,
+  TrendingUp,
+  Newspaper,
+  Info,
+  AlertTriangle
 } from 'lucide-vue-next'
 
-const selectedVesselId = ref(1)
+const router = useRouter()
+const selectedVesselId = ref(0)
 const userRole = ref(localStorage.getItem('userRole') || 'umum')
 const userName = ref(localStorage.getItem('userName') || 'Pengunjung')
+const isLoading = ref(true)
 
-// Dummy data for public ships
-const publicShips = [
-  { id: 1, name: 'KM. SAMUDRA VII', dock: 'Dermaga A' },
-  { id: 2, name: 'KM. BINTANG JAYA', dock: 'Dermaga B' },
-  { id: 3, name: 'LCT. PUTRA MANDALA', dock: 'Dermaga C' },
+// Dynamic data
+const publicShips = ref<any[]>([])
+const managedVessels = ref<any[]>([])
+const latestActivity = ref<any>(null)
+const fishPrices = ref<any[]>([])
+
+const formatDateTime = (dateStr: string, timeStr: string) => {
+  if (!dateStr) return '-'
+  try {
+    const date = new Date(dateStr)
+    const formattedDate = new Intl.DateTimeFormat('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(date)
+    const formattedTime = timeStr ? timeStr.substring(0, 5) + ' WIB' : ''
+    return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate
+  } catch (e) {
+    return `${dateStr} ${timeStr || ''}`.trim()
+  }
+}
+
+const fetchDashboardData = async () => {
+  isLoading.value = true
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const token = localStorage.getItem('token')
+    
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    // Fetch Arrivals
+    const resArrivals = await fetch(`${baseUrl}/arrivals`, { headers })
+    const dataArrivals = await resArrivals.json()
+    
+    // Fetch Departures
+    const resDepartures = await fetch(`${baseUrl}/departures`, { headers })
+    const dataDepartures = await resDepartures.json()
+
+    const arrivalsList = (dataArrivals.data?.data || []).map((item: any) => ({
+      id: `arr-${item.id}`,
+      name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+      dock: item.landing_site?.site_name || '-',
+      type: 'Kedatangan',
+      time: formatDateTime(item.arrival_date, item.arrival_time),
+      fishingGear: item.vessel?.fishing_gear || '-',
+      gt: item.vessel?.gt || 0,
+      vesselId: item.vessel_id
+    }))
+
+    const departuresList = (dataDepartures.data?.data || []).map((item: any) => ({
+      id: `dep-${item.id}`,
+      name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+      dock: item.landing_site?.site_name || '-',
+      type: 'Keberangkatan',
+      time: formatDateTime(item.departure_date, item.departure_time),
+      fishingGear: item.vessel?.fishing_gear || '-',
+      gt: item.vessel?.gt || 0,
+      vesselId: item.vessel_id
+    }))
+
+    const allShips = [...arrivalsList, ...departuresList]
+
+    if (userRole.value === 'umum') {
+      // Show latest 5 ships for public
+      publicShips.value = allShips.slice(0, 5)
+    }
+
+    if (userRole.value === 'pengelola') {
+      // Group unique vessels for vessel switcher
+      const vesselMap = new Map()
+      allShips.forEach((ship: any) => {
+        if (!vesselMap.has(ship.vesselId)) {
+          vesselMap.set(ship.vesselId, ship)
+        }
+      })
+      managedVessels.value = Array.from(vesselMap.values())
+      
+      if (managedVessels.value.length > 0) {
+        selectedVesselId.value = managedVessels.value[0].vesselId
+      }
+
+      // Latest activity
+      if (allShips.length > 0) {
+        latestActivity.value = allShips[0]
+      }
+    }
+
+    // Fetch Fish prices (for umum)
+    if (userRole.value === 'umum') {
+      try {
+        const resFish = await fetch(`${baseUrl}/fish`, { headers })
+        const dataFish = await resFish.json()
+        if (dataFish.status === 'success') {
+          fishPrices.value = (dataFish.data || []).slice(0, 4).map((item: any) => ({
+            name: item.name,
+            price: item.base_price || 0
+          }))
+        }
+      } catch (e) {
+        console.error('Gagal mengambil data ikan:', e)
+      }
+    }
+
+  } catch (error) {
+    console.error('Gagal mengambil data dashboard:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const currentVessel = computed(() => managedVessels.value.find((v: any) => v.vesselId === selectedVesselId.value))
+
+// Berita PPN Sibolga
+const beritaList = [
+  { 
+    id: 1, 
+    title: 'Operasional PPN Sibolga Normal 24 Jam', 
+    description: 'PPN Sibolga melayani aktivitas bongkar muat dan pendaratan ikan selama 24 jam. Semua dermaga dalam kondisi baik.',
+    date: '1 Mei 2026',
+    icon: Newspaper,
+    bg: 'bg-primary-50 dark:bg-primary-900/20',
+    iconColor: 'text-primary-600 dark:text-primary-400'
+  },
+  { 
+    id: 2, 
+    title: 'Peraturan Baru: Wajib Lapor SPR Digital', 
+    description: 'Mulai bulan ini, semua pengelola kapal diwajibkan melaporkan SPR secara digital melalui aplikasi SAMOSIR.',
+    date: '28 April 2026',
+    icon: Info,
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    iconColor: 'text-blue-600 dark:text-blue-400'
+  },
+  { 
+    id: 3, 
+    title: 'Peringatan Cuaca Buruk Perairan Sibolga', 
+    description: 'BMKG mengeluarkan peringatan gelombang tinggi 2-4 meter di perairan Sibolga untuk 3 hari ke depan.',
+    date: '27 April 2026',
+    icon: AlertTriangle,
+    bg: 'bg-amber-50 dark:bg-amber-900/20',
+    iconColor: 'text-amber-600 dark:text-amber-400'
+  },
 ]
 
 // Titik Koordinat PPN Sibolga
@@ -281,6 +452,7 @@ const fetchWeather = async () => {
 
 onMounted(() => {
   fetchWeather();
+  fetchDashboardData();
 })
 
 const weatherText = computed(() => {
@@ -302,41 +474,6 @@ const weatherIcon = computed(() => {
   if (code <= 65) return CloudRain;
   return CloudLightning;
 });
-
-const managedVessels = [
-  { 
-    id: 1, 
-    name: 'KM. SAMUDRA VII', 
-    status: 'Bersandar',
-    stats: { timeRemaining: '12 Jam' },
-    documents: [
-      { name: 'SIPI (Izin Penangkap)', expiry: '12 Des 2026', icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-600 dark:text-emerald-400' },
-      { name: 'SIUP (Izin Usaha)', expiry: '20 Jan 2027', icon: ShieldCheck, bg: 'bg-indigo-50 dark:bg-indigo-900/20', text: 'text-indigo-600 dark:text-indigo-400' },
-      { name: 'Sertifikat Kelayakan', expiry: 'Expired: 2 Hari!', icon: AlertCircle, bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-600 dark:text-amber-400' },
-    ]
-  },
-  { 
-    id: 2, 
-    name: 'KM. BINTANG JAYA', 
-    status: 'Menuju Pelabuhan',
-    stats: { timeRemaining: 'ETA 2 Jam' },
-    documents: [
-      { name: 'SIPI (Izin Penangkap)', expiry: '05 Nov 2026', icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-600 dark:text-emerald-400' },
-      { name: 'Sertifikat Kelayakan', expiry: '15 Sep 2027', icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-600 dark:text-emerald-400' },
-    ]
-  },
-  { 
-    id: 3, 
-    name: 'LCT. PUTRA MANDALA', 
-    status: 'Docking',
-    stats: { timeRemaining: '3 Hari' },
-    documents: [
-      { name: 'SIUP (Izin Usaha)', expiry: '10 Feb 2027', icon: ShieldCheck, bg: 'bg-indigo-50 dark:bg-indigo-900/20', text: 'text-indigo-600 dark:text-indigo-400' },
-    ]
-  }
-]
-
-const currentVessel = computed(() => managedVessels.find(v => v.id === selectedVesselId.value))
 </script>
 
 <style scoped>
@@ -346,5 +483,11 @@ const currentVessel = computed(() => managedVessels.find(v => v.id === selectedV
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

@@ -10,6 +10,11 @@ const routes: RouteRecordRaw[] = [
     component: Login
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/Register.vue')
+  },
+  {
     path: '/',
     component: AppLayout,
     children: [
@@ -42,6 +47,16 @@ const routes: RouteRecordRaw[] = [
         path: 'commodity',
         name: 'Commodity',
         component: () => import('../views/Commodity.vue')
+      },
+      {
+        path: 'edit-profile',
+        name: 'EditProfile',
+        component: () => import('../views/EditProfile.vue')
+      },
+      {
+        path: 'about-ppn',
+        name: 'AboutPPN',
+        component: () => import('../views/AboutPPN.vue')
       }
     ]
   }

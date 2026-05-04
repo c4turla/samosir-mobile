@@ -79,30 +79,73 @@
 <script setup lang="ts">
 import { Fish, TrendingUp, ShoppingCart, Anchor } from 'lucide-vue-next'
 
-const manifests = [
-  { 
-    name: 'KM. SAMUDRA VII', 
-    dock: 'Dermaga A',
-    cargo: [
-      { type: 'Ikan Cakalang', amount: '450 Kg', emoji: '🐟' },
-      { type: 'Ikan Tuna', amount: '120 Kg', emoji: '🐋' }
-    ]
-  },
-  { 
-    name: 'KM. BINTANG TIMUR', 
-    dock: 'Dermaga B',
-    cargo: [
-      { type: 'Udang Vaname', amount: '800 Kg', emoji: '🦐' },
-      { type: 'Cumi-cumi', amount: '150 Kg', emoji: '🦑' }
-    ]
-  }
-]
+import { ref, onMounted } from 'vue'
 
-const commodities = [
-  { name: 'Ikan Cakalang', stock: '1.2 Ton', price: 28000, emoji: '🐟', bg: 'bg-blue-50 dark:bg-blue-900/10' },
-  { name: 'Ikan Tuna', stock: '800 Kg', price: 45000, emoji: '🐋', bg: 'bg-indigo-50 dark:bg-indigo-900/10' },
-  { name: 'Udang Vaname', stock: '2.5 Ton', price: 85000, emoji: '🦐', bg: 'bg-orange-50 dark:bg-orange-900/10' },
-  { name: 'Ikan Kerapu', stock: '300 Kg', price: 65000, emoji: '🐠', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
-  { name: 'Cumi-cumi', stock: '500 Kg', price: 55000, emoji: '🦑', bg: 'bg-slate-50 dark:bg-slate-900/10' },
-]
+const manifests = ref<any[]>([])
+const commodities = ref<any[]>([])
+const isLoading = ref(true)
+
+const fishConfig: Record<string, { emoji: string, bg: string }> = {
+  'Cakalang': { emoji: '🐟', bg: 'bg-blue-50 dark:bg-blue-900/10' },
+  'Tuna': { emoji: '🐋', bg: 'bg-indigo-50 dark:bg-indigo-900/10' },
+  'Udang': { emoji: '🦐', bg: 'bg-orange-50 dark:bg-orange-900/10' },
+  'Kerapu': { emoji: '🐠', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
+  'Cumi-cumi': { emoji: '🦑', bg: 'bg-slate-50 dark:bg-slate-900/10' },
+  'default': { emoji: '🐟', bg: 'bg-gray-50 dark:bg-gray-900/10' }
+}
+
+const fetchData = async () => {
+  isLoading.value = true
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const token = localStorage.getItem('token')
+    
+    const headers = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+
+    // Fetch Fish Species
+    const resFish = await fetch(`${baseUrl}/fish`, { headers })
+    const dataFish = await resFish.json()
+    
+    if (dataFish.status === 'success') {
+      commodities.value = dataFish.data.map((item: any) => {
+        const config = fishConfig[item.name] || fishConfig['default']
+        return {
+          name: item.name,
+          stock: 'N/A', // API fish endpoint doesn't seem to have stock
+          price: item.base_price || 0,
+          emoji: config.emoji,
+          bg: config.bg
+        }
+      })
+    }
+
+    // Fetch Arrivals for Manifests
+    const resArrivals = await fetch(`${baseUrl}/arrivals`, { headers })
+    const dataArrivals = await resArrivals.json()
+    
+    if (dataArrivals.status === 'success') {
+      manifests.value = (dataArrivals.data.data || []).map((item: any) => ({
+        name: item.vessel?.name || 'Unknown Vessel',
+        dock: item.landing_site?.name || '-',
+        cargo: (item.catches || []).map((c: any) => ({
+          type: c.fish_species?.name || 'Unknown Fish',
+          amount: `${c.weight} Kg`,
+          emoji: (fishConfig[c.fish_species?.name] || fishConfig['default']).emoji
+        }))
+      })).filter((m: any) => m.cargo.length > 0).slice(0, 5)
+    }
+
+  } catch (error) {
+    console.error('Gagal mengambil data komoditas:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchData()
+})
 </script>

@@ -9,7 +9,7 @@
         <input 
           v-model="searchQuery"
           type="text" 
-          placeholder="Cari kapal atau nahkoda..." 
+          placeholder="Cari kapal atau alat tangkap..." 
           class="block w-full pl-10 pr-3 py-3 border border-gray-100 dark:border-slate-700 rounded-2xl bg-gray-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm dark:text-white dark:placeholder:text-gray-500"
         />
       </div>
@@ -101,16 +101,80 @@ import { Search, Anchor, MessageSquare, Users } from 'lucide-vue-next'
 const router = useRouter()
 const activeTab = ref('Semua')
 const searchQuery = ref('')
+const isLoading = ref(true)
 
-const schedules = [
-  { id: 1, name: 'KM. SAMUDRA JAYA VII', captain: 'Capt. Heri Wibowo', type: 'Kedatangan', time: '09:30 WIB', dock: 'Dermaga A', crew: 12 },
-  { id: 2, name: 'KM. BINTANG TIMUR', captain: 'Setyadi', type: 'Keberangkatan', time: '13:00 WIB', dock: 'Dermaga B', crew: 8 },
-  { id: 3, name: 'LCT. PUTRA MANDALA', captain: 'Alex Johnson', type: 'Kedatangan', time: '15:45 WIB', dock: 'Dermaga C', crew: 15 },
-  { id: 4, name: 'KM. LAUT SELATAN', captain: 'Budiyanto', type: 'Keberangkatan', time: 'H+1 06:00', dock: 'Dermaga A', crew: 10 },
-]
+const schedules = ref<any[]>([])
+
+const fetchData = async () => {
+  isLoading.value = true
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const token = localStorage.getItem('token')
+    
+    const headers = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+
+    // Fetch Arrivals
+    const resArrivals = await fetch(`${baseUrl}/arrivals`, { headers })
+    const dataArrivals = await resArrivals.json()
+    
+    // Fetch Departures
+    const resDepartures = await fetch(`${baseUrl}/departures`, { headers })
+    const dataDepartures = await resDepartures.json()
+
+    const formatDateTime = (dateStr: string, timeStr: string) => {
+      if (!dateStr) return '-'
+      try {
+        const date = new Date(dateStr)
+        const formattedDate = new Intl.DateTimeFormat('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }).format(date)
+        const formattedTime = timeStr ? timeStr.substring(0, 5) + ' WIB' : ''
+        return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate
+      } catch (e) {
+        return `${dateStr} ${timeStr || ''}`.trim()
+      }
+    }
+
+    const arrivals = (dataArrivals.data.data || []).map((item: any) => ({
+      id: `arr-${item.id}`,
+      name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+      captain: `${item.vessel?.fishing_gear || '-'} • ${item.vessel?.gt || '0'} GT`,
+      type: 'Kedatangan',
+      time: formatDateTime(item.arrival_date, item.arrival_time),
+      dock: item.landing_site?.site_name || '-',
+      crew: item.crew_count || 0
+    }))
+
+    const departures = (dataDepartures.data.data || []).map((item: any) => ({
+      id: `dep-${item.id}`,
+      name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+      captain: `${item.vessel?.fishing_gear || '-'} • ${item.vessel?.gt || '0'} GT`,
+      type: 'Keberangkatan',
+      time: formatDateTime(item.departure_date, item.departure_time),
+      dock: item.landing_site?.site_name || '-',
+      crew: item.crew_count || 0
+    }))
+
+    schedules.value = [...arrivals, ...departures]
+  } catch (error) {
+    console.error('Gagal mengambil jadwal:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+import { onMounted } from 'vue'
+onMounted(() => {
+  fetchData()
+})
 
 const filteredSchedules = computed(() => {
-  return schedules.filter(ship => {
+  return schedules.value.filter(ship => {
     const matchesTab = activeTab.value === 'Semua' || ship.type === activeTab.value
     const matchesSearch = ship.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
                           ship.captain.toLowerCase().includes(searchQuery.value.toLowerCase())
