@@ -31,7 +31,13 @@
           @click="selectConversationFromList(conversation)"
         >
           <div class="relative flex-shrink-0">
-            <div :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', conversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
+            <img
+              v-if="conversation.photo"
+              :src="conversation.photo"
+              :alt="conversation.name"
+              class="w-16 h-16 rounded-3xl object-cover shadow-lg"
+            />
+            <div v-else :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', conversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
               {{ conversation.initials }}
             </div>
             <div v-if="conversation.online" class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-3 border-white dark:border-slate-950 shadow-sm"></div>
@@ -82,7 +88,13 @@
           @click="selectConversation(contact)"
         >
           <div class="relative flex-shrink-0">
-            <div :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', contact.color || getColorForContact(contact), 'bg-gradient-to-br shadow-gray-300 dark:shadow-gray-900/50']">
+            <img
+              v-if="contact.photo"
+              :src="contact.photo"
+              :alt="contact.name"
+              class="w-16 h-16 rounded-3xl object-cover shadow-lg"
+            />
+            <div v-else :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', contact.color || getColorForContact(contact), 'bg-gradient-to-br shadow-gray-300 dark:shadow-gray-900/50']">
               {{ contact.initials }}
             </div>
             <div v-if="contact.online" class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-3 border-white dark:border-slate-950 shadow-sm"></div>
@@ -91,17 +103,27 @@
           <div class="flex-1 min-w-0">
             <div class="flex justify-between items-baseline mb-2">
               <h4 class="text-base font-bold text-gray-900 dark:text-gray-100 truncate">{{ contact.name }}</h4>
-              <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">{{ contact.lastSeen || 'Offline' }}</span>
+              <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">{{ contact.roleLabel }}</span>
             </div>
             <div class="flex justify-between items-center">
               <p class="text-sm truncate text-gray-500 dark:text-gray-400 max-w-[200px]">
-                {{ contact.lastMessage || 'Belum ada pesan' }}
+                Mulai percakapan
               </p>
-              <div v-if="contact.unread > 0" class="ml-3 w-6 h-6 bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 rounded-full flex items-center justify-center shadow-lg">
-                <span class="text-xs font-bold text-white">{{ contact.unread }}</span>
-              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Loading state for contacts -->
+        <div v-if="loadingContacts && contacts.length === 0" class="text-center py-12">
+          <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <div class="w-8 h-8 border-3 border-primary-600 dark:border-primary-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p class="text-gray-500 dark:text-gray-400 font-medium">Memuat kontak...</p>
+        </div>
+
+        <!-- Empty state for contacts -->
+        <div v-if="contacts.length === 0 && !loadingContacts" class="text-center py-12">
+          <p class="text-gray-500 dark:text-gray-400 font-medium">Tidak ada kontak ditemukan</p>
         </div>
       </div>
     </div>
@@ -113,7 +135,7 @@
     <div class="flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-800 shadow-lg border-b border-gray-100 dark:border-slate-700">
       <div class="flex items-center space-x-4">
         <button
-          @click="selectedConversation = null"
+          @click="goBack"
           class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-200"
         >
           <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +143,13 @@
           </svg>
         </button>
         <div class="relative">
-          <div :class="['w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white shadow-lg', selectedConversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
+          <img
+            v-if="selectedConversation.photo"
+            :src="selectedConversation.photo"
+            :alt="selectedConversation.name"
+            class="w-12 h-12 rounded-2xl object-cover shadow-lg"
+          />
+          <div v-else :class="['w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white shadow-lg', selectedConversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
             {{ selectedConversation.initials }}
           </div>
           <div v-if="selectedConversation.online" class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-3 border-white dark:border-slate-800 shadow-sm"></div>
@@ -135,9 +163,14 @@
         </div>
       </div>
       <div class="flex items-center space-x-2">
-        <button class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-200">
-          <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+        <!-- Delete Conversation Button -->
+        <button
+          @click="confirmDeleteConversation"
+          class="p-2 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200"
+          title="Hapus percakapan"
+        >
+          <svg class="w-5 h-5 text-gray-600 dark:text-gray-300 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
           </svg>
         </button>
       </div>
@@ -154,21 +187,96 @@
 
       <!-- Messages -->
       <div v-for="message in messages" :key="message.id" class="flex" :class="message.sender_id === userId ? 'justify-end' : 'justify-start'">
+        <!-- My messages (sent by current user) -->
         <div v-if="message.sender_id === userId" class="max-w-[75%] space-y-1">
-          <div class="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 text-white px-5 py-3 rounded-3xl rounded-br-md shadow-lg ml-auto">
-            <p class="text-sm leading-relaxed">{{ message.body }}</p>
+          <div
+            class="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 text-white px-5 py-3 rounded-3xl rounded-br-md shadow-lg ml-auto relative group"
+            @contextmenu.prevent="openMessageMenu($event, message)"
+          >
+            <!-- File attachment -->
+            <div v-if="message.file_full_url" class="mb-2">
+              <img
+                v-if="message.type === 'image'"
+                :src="message.file_full_url"
+                :alt="message.file_name"
+                class="max-w-full rounded-2xl cursor-pointer"
+                @click="openImage(message.file_full_url)"
+              />
+              <a
+                v-else
+                :href="message.file_full_url"
+                target="_blank"
+                class="flex items-center space-x-2 text-white/80 hover:text-white"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                </svg>
+                <span class="text-sm underline">{{ message.file_name || 'Lampiran' }}</span>
+              </a>
+            </div>
+            <!-- Message text -->
+            <p v-if="message.body" class="text-sm leading-relaxed" :class="{ 'italic text-white/70': message.is_deleted }">
+              {{ message.body }}
+            </p>
+            <!-- Edited indicator -->
+            <span v-if="message.is_edited && !message.is_deleted" class="text-[10px] text-white/50 ml-2">(diedit)</span>
           </div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 text-right mr-2">{{ formatTime(message.created_at) }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 text-right mr-2 flex items-center justify-end space-x-1">
+            <span>{{ formatTime(message.created_at) }}</span>
+            <!-- Message actions (shown on hover for own messages) -->
+            <button
+              v-if="!message.is_deleted"
+              @click="openMessageMenu($event, message)"
+              class="ml-1 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
+
+        <!-- Other's messages -->
         <div v-else class="max-w-[75%] space-y-1">
           <div class="flex items-end space-x-3">
             <div class="relative flex-shrink-0">
-              <div :class="['w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white text-xs', selectedConversation.color, 'bg-gradient-to-br']">
+              <img
+                v-if="selectedConversation.photo"
+                :src="selectedConversation.photo"
+                :alt="selectedConversation.name"
+                class="w-8 h-8 rounded-xl object-cover"
+              />
+              <div v-else :class="['w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white text-xs', selectedConversation.color, 'bg-gradient-to-br']">
                 {{ selectedConversation.initials }}
               </div>
             </div>
             <div class="bg-white dark:bg-slate-700 px-5 py-3 rounded-3xl rounded-bl-md shadow-lg border border-gray-100 dark:border-slate-600">
-              <p class="text-sm text-gray-900 dark:text-gray-100 leading-relaxed">{{ message.body }}</p>
+              <!-- File attachment -->
+              <div v-if="message.file_full_url" class="mb-2">
+                <img
+                  v-if="message.type === 'image'"
+                  :src="message.file_full_url"
+                  :alt="message.file_name"
+                  class="max-w-full rounded-2xl cursor-pointer"
+                  @click="openImage(message.file_full_url)"
+                />
+                <a
+                  v-else
+                  :href="message.file_full_url"
+                  target="_blank"
+                  class="flex items-center space-x-2 text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                  </svg>
+                  <span class="text-sm">{{ message.file_name || 'Lampiran' }}</span>
+                </a>
+              </div>
+              <!-- Message text -->
+              <p v-if="message.body" class="text-sm text-gray-900 dark:text-gray-100 leading-relaxed" :class="{ 'italic text-gray-400 dark:text-gray-500': message.is_deleted }">
+                {{ message.body }}
+              </p>
+              <span v-if="message.is_edited && !message.is_deleted" class="text-[10px] text-gray-400 dark:text-gray-500 ml-2">(diedit)</span>
             </div>
           </div>
           <div class="text-xs text-gray-500 dark:text-gray-400 text-left ml-11">{{ formatTime(message.created_at) }}</div>
@@ -215,6 +323,21 @@
 
     <!-- Message Input -->
     <div class="px-6 py-4 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700">
+      <!-- File preview -->
+      <div v-if="selectedFile" class="mb-3 flex items-center space-x-3 bg-gray-50 dark:bg-slate-700 rounded-2xl px-4 py-2">
+        <div class="flex items-center space-x-2 flex-1 min-w-0">
+          <svg class="w-5 h-5 text-primary-600 dark:text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+          </svg>
+          <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ selectedFile.name }}</span>
+          <span class="text-xs text-gray-400">({{ formatFileSize(selectedFile.size) }})</span>
+        </div>
+        <button @click="removeFile" class="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
       <div class="flex items-end space-x-4">
         <div class="flex-1 relative">
           <textarea
@@ -227,7 +350,17 @@
             class="w-full px-5 py-3 pr-12 rounded-3xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none max-h-32 overflow-y-auto"
             style="min-height: 48px;"
           ></textarea>
-          <button class="absolute right-3 bottom-3 p-1 rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors duration-200">
+          <input
+            ref="fileInput"
+            type="file"
+            class="hidden"
+            @change="handleFileSelect"
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+          />
+          <button
+            @click="($refs.fileInput as HTMLInputElement)?.click()"
+            class="absolute right-3 bottom-3 p-1 rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors duration-200"
+          >
             <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
             </svg>
@@ -235,7 +368,7 @@
         </div>
         <button
           @click="sendMessage"
-          :disabled="!newMessage.trim() || sendingMessage"
+          :disabled="(!newMessage.trim() && !selectedFile) || sendingMessage"
           class="p-3 bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
         >
           <svg v-if="!sendingMessage" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,6 +379,67 @@
       </div>
     </div>
   </div>
+
+  <!-- Context Menu for Messages -->
+  <div
+    v-if="contextMenu.visible"
+    class="fixed z-50 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 py-2 min-w-[160px] overflow-hidden"
+    :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
+  >
+    <button
+      v-if="contextMenu.message?.sender_id === userId && !contextMenu.message?.is_deleted"
+      @click="startEditMessage(contextMenu.message)"
+      class="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+    >
+      <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+      </svg>
+      <span class="text-sm text-gray-700 dark:text-gray-300">Edit</span>
+    </button>
+    <button
+      v-if="contextMenu.message?.sender_id === userId && !contextMenu.message?.is_deleted"
+      @click="deleteMessage(contextMenu.message)"
+      class="w-full flex items-center space-x-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+    >
+      <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+      </svg>
+      <span class="text-sm text-red-500">Hapus</span>
+    </button>
+  </div>
+
+  <!-- Edit Message Modal -->
+  <div v-if="editingMessage" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="cancelEditMessage">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-6 mx-4 w-full max-w-md">
+      <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Edit Pesan</h3>
+      <textarea
+        v-model="editMessageBody"
+        class="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+        rows="3"
+        placeholder="Edit pesan..."
+      ></textarea>
+      <div class="flex justify-end space-x-3 mt-4">
+        <button
+          @click="cancelEditMessage"
+          class="px-5 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+        >
+          Batal
+        </button>
+        <button
+          @click="submitEditMessage"
+          :disabled="!editMessageBody.trim() || savingEdit"
+          class="px-5 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {{ savingEdit ? 'Menyimpan...' : 'Simpan' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Preview Modal -->
+  <div v-if="imagePreviewUrl" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click="imagePreviewUrl = null">
+    <img :src="imagePreviewUrl" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -254,12 +448,12 @@ import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 
 // API Configuration
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 // Configure Laravel Echo for real-time communication
 declare global {
   interface Window {
-    Pusher: any;
+    Pusher: any
   }
 }
 
@@ -269,6 +463,8 @@ let echo: any = null
 
 const initEcho = async () => {
   try {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
     echo = new Echo({
       broadcaster: 'reverb',
       key: import.meta.env.VITE_REVERB_APP_KEY || 'your-app-key',
@@ -285,7 +481,7 @@ const initEcho = async () => {
       }
     })
 
-    console.log('Laravel Echo initialized successfully')
+    console.log(`Laravel Echo initialized (mobile: ${isMobile})`)
   } catch (error) {
     console.error('Failed to initialize Laravel Echo:', error)
     isWebSocketEnabled = false
@@ -295,10 +491,10 @@ const initEcho = async () => {
 // State
 const userId = ref(Number(localStorage.getItem('userId')) || 1)
 const userRole = ref(localStorage.getItem('userRole') || 'umum')
-const contacts = ref([])
-const conversations = ref([])
-const messages = ref([])
-const selectedConversation = ref(null)
+const contacts = ref([] as any[])
+const conversations = ref([] as any[])
+const messages = ref([] as any[])
+const selectedConversation = ref(null as any)
 const newMessage = ref('')
 const loadingContacts = ref(false)
 const loadingConversations = ref(false)
@@ -307,11 +503,52 @@ const sendingMessage = ref(false)
 const activeCategory = ref('Semua')
 const isTyping = ref(false)
 const messagesContainer = ref(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const selectedFile = ref<File | null>(null)
+const imagePreviewUrl = ref<string | null>(null)
+
+// Context menu state
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  message: null as any
+})
+
+// Edit message state
+const editingMessage = ref<any>(null)
+const editMessageBody = ref('')
+const savingEdit = ref(false)
 
 // Real-time WebSocket
 let echoChannel: any = null
 let privateChannel: any = null
 let isWebSocketEnabled = true
+let pollingIntervals: ReturnType<typeof setInterval>[] = []
+
+// Role to category mapping
+const roleToCategory = (role: string): string => {
+  const mapping: Record<string, string> = {
+    'admin': 'Admin',
+    'petugas': 'Petugas',
+    'pengelola': 'Pengelola',
+    'syahbandar': 'Syahbandar',
+    'umum': 'Umum',
+  }
+  return mapping[role?.toLowerCase()] || 'Klien'
+}
+
+// Role label for display
+const roleLabel = (role: string): string => {
+  const labels: Record<string, string> = {
+    'admin': 'Admin',
+    'petugas': 'Petugas',
+    'syahbandar': 'Syahbandar',
+    'pengelola': 'Pengelola',
+    'umum': 'Umum',
+  }
+  return labels[role?.toLowerCase()] || role || ''
+}
 
 // Computed
 const categories = computed(() => {
@@ -321,49 +558,59 @@ const categories = computed(() => {
 })
 
 const filteredContacts = computed(() => {
-  // Filter contacts based on active category and user role
   return contacts.value.filter(contact => {
-    // Category filter
-    const matchCategory = activeCategory.value === 'Semua' || contact.category === activeCategory.value
-
-    // Role-based visibility
-    let visibleForRole = true
-    if (userRole.value === 'umum' && contact.category === 'Klien') visibleForRole = false
-    if (userRole.value === 'pengelola' && contact.category === 'Pengelola') {
-      // Allow managers to see other managers
-    }
-
-    return matchCategory && visibleForRole
+    const cat = contact.category
+    if (activeCategory.value === 'Semua') return true
+    return cat === activeCategory.value
   })
 })
 
-// Methods
+// Consistent color based on ID
+const getColorForId = (id: number): string => {
+  const colors = ['bg-primary-600', 'bg-indigo-500', 'bg-emerald-600', 'bg-slate-700', 'bg-purple-600', 'bg-rose-600']
+  return colors[Math.abs(id) % colors.length]
+}
+
+const getColorForContact = (contact: any) => {
+  return getColorForId(contact.id)
+}
+
+// Helper: get initials from name
+const getInitials = (name: string): string => {
+  return name?.match(/\b\w/g)?.join('').substring(0, 2).toUpperCase() || '??'
+}
+
+// Auth headers helper
+const getAuthHeaders = () => ({
+  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+  'Accept': 'application/json'
+})
+
+// ========================
+// API Methods (per api_chat.md)
+// ========================
+
+// 1. GET /chat/contacts
 const fetchContacts = async () => {
   loadingContacts.value = true
   try {
     const response = await fetch(`${API_BASE}/api/v1/chat/contacts`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
 
     if (response.ok) {
       const data = await response.json()
       if (data.status === 'success') {
-        // Transform contacts to match UI expectations
         contacts.value = data.data.map((contact: any) => ({
           id: contact.id,
           name: contact.name,
-          initials: contact.name.match(/\b\w/g)?.join('').substring(0, 2).toUpperCase() || '??',
+          initials: getInitials(contact.name),
           role: contact.role,
-          category: contact.role, // Add category for filtering
-          photo: contact.photo,
-          online: Math.random() > 0.5, // Simulate online status
-          lastSeen: Math.random() > 0.7 ? 'Baru aktif' : Math.random() > 0.3 ? 'Sembilan menit yang lalu' : 'Kemarin',
-          lastMessage: Math.random() > 0.6 ? 'Halo, ada yang bisa saya bantu?' : '',
-          unread: Math.floor(Math.random() * 5),
-          color: ['bg-primary-600', 'bg-indigo-500', 'bg-emerald-600', 'bg-slate-700'][Math.floor(Math.random() * 4)]
+          roleLabel: roleLabel(contact.role),
+          category: roleToCategory(contact.role),
+          photo: contact.photo || null,
+          online: false,
+          color: getColorForId(contact.id)
         }))
       }
     }
@@ -374,30 +621,35 @@ const fetchContacts = async () => {
   }
 }
 
+// 2. GET /chat/conversations
 const fetchConversations = async () => {
   loadingConversations.value = true
   try {
     const response = await fetch(`${API_BASE}/api/v1/chat/conversations`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Accept': 'application/json'
-      }
+      headers: getAuthHeaders()
     })
 
     if (response.ok) {
       const data = await response.json()
       if (data.status === 'success') {
-        // Transform conversations
         conversations.value = data.data.map((conv: any) => ({
           id: conv.id,
-          name: conv.participant?.name || 'Percakapan Grup',
-          initials: conv.participant?.name?.match(/\b\w/g)?.join('').substring(0, 2).toUpperCase() || 'GP',
+          type: conv.type,
+          name: conv.participant?.name || 'Percakapan',
+          initials: getInitials(conv.participant?.name || '??'),
+          photo: conv.participant?.photo || null,
           lastMessage: conv.latest_message?.body || '',
-          time: conv.latest_message?.created_at ? new Date(conv.latest_message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '',
-          unread: !conv.read_at ? 1 : 0, // Simplified
-          online: conv.participant?.online ?? false,
-          color: ['bg-primary-600', 'bg-indigo-500', 'bg-emerald-600', 'bg-slate-700'][Math.floor(Math.random() * 4)],
-          category: conv.participant?.role || 'Petugas'
+          time: conv.latest_message?.created_at
+            ? new Date(conv.latest_message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '',
+          unread: !conv.read_at ? 1 : 0,
+          online: false,
+          color: getColorForId(conv.participant?.id || 0),
+          category: roleToCategory(conv.participant?.role || ''),
+          // Keep raw participant data for lookups
+          participant: conv.participant,
+          read_at: conv.read_at,
+          last_message_at: conv.last_message_at
         }))
       }
     }
@@ -408,131 +660,74 @@ const fetchConversations = async () => {
   }
 }
 
-const fetchMessages = async (conversationId: number, showLoading = true) => {
-  console.log('fetchMessages called with conversationId:', conversationId, 'API_BASE:', API_BASE)
+// 3. POST /chat/conversations/get (Get or Create Conversation)
+const getOrCreateConversation = async (receiverId: number): Promise<number | null> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/chat/conversations/get`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ receiver_id: receiverId })
+    })
 
+    if (response.ok) {
+      const data = await response.json()
+      if (data.status === 'success') {
+        return data.data.id
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Failed to get/create conversation:', error)
+    return null
+  }
+}
+
+// 4. GET /chat/conversations/{id}/messages
+const fetchMessages = async (conversationId: number, showLoading = true) => {
   if (!conversationId) {
-    console.log('No conversationId provided, setting empty messages')
     messages.value = []
     return
   }
 
   if (showLoading) loadingMessages.value = true
 
-  // Add dummy messages for testing (remove in production)
-  if (conversationId == 1) {
-    messages.value = [
-      {
-        id: 1,
-        body: 'Selamat datang di aplikasi Samosir Mobile!',
-        sender_id: 1,
-        created_at: new Date().toISOString(),
-        sender: { id: 1, name: 'Admin' }
-      },
-      {
-        id: 2,
-        body: 'Terima kasih atas sambutannya!',
-        sender_id: 2,
-        created_at: new Date().toISOString(),
-        sender: { id: 2, name: 'User' }
-      }
-    ]
-    if (showLoading) loadingMessages.value = false
-    setTimeout(() => scrollToBottom(), 100)
-    return
-  } else if (conversationId == 2) {
-    messages.value = [
-      {
-        id: 3,
-        body: 'Halo Capt. Heri, bagaimana kondisi ikan hari ini?',
-        sender_id: 2,
-        created_at: new Date().toISOString(),
-        sender: { id: 2, name: 'User' }
-      },
-      {
-        id: 4,
-        body: 'Baik-baik saja. Ikan tuna 500kg sudah ready untuk diantar.',
-        sender_id: 3,
-        created_at: new Date().toISOString(),
-        sender: { id: 3, name: 'Capt. Heri' }
-      }
-    ]
-    if (showLoading) loadingMessages.value = false
-    setTimeout(() => scrollToBottom(), 100)
-    return
-  }
-
   try {
-    // For selectConversationFromList (existing conversations), conversationId is already the conversation ID
-    // For selectConversation (new conversations), we need to handle differently
-
-    let targetConversationId = conversationId
-
-    // Check if this conversationId exists in our conversations list (meaning it's a real conversation ID)
-    const existingConversation = conversations.value.find((conv: any) => conv.id === conversationId)
-
-    if (existingConversation) {
-      // This is already a conversation ID, use it directly
-      console.log('Using conversation ID directly:', conversationId)
-      targetConversationId = conversationId
-    } else {
-      // This might be a contact ID, try to find existing conversation
-      const conversationByParticipant = conversations.value.find((conv: any) =>
-        conv.participant?.id === conversationId
-      )
-
-      if (conversationByParticipant) {
-        console.log('Found conversation by participant:', conversationByParticipant)
-        targetConversationId = conversationByParticipant.id
-      } else {
-        // No existing conversation, this is a new conversation
-        console.log('No existing conversation found for contact:', conversationId)
-        messages.value = []
-        if (showLoading) loadingMessages.value = false
-        return
-      }
-    }
-
-    const url = `${API_BASE}/api/v1/chat/conversations/${targetConversationId}/messages`
-    console.log('Fetching messages from URL:', url)
-
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Accept': 'application/json'
-      }
+    const response = await fetch(`${API_BASE}/api/v1/chat/conversations/${conversationId}/messages?per_page=50`, {
+      headers: getAuthHeaders()
     })
-
-    console.log('Response status:', response.status)
 
     if (response.ok) {
       const data = await response.json()
-      console.log('Response data:', data)
-
       if (data.status === 'success') {
-        const newMessages = data.data.data.map((msg: any) => ({
+        // API returns paginated data: data.data.data
+        const messagesData = data.data.data || data.data || []
+        messages.value = messagesData.map((msg: any) => ({
           id: msg.id,
+          conversation_id: msg.conversation_id,
           body: msg.body,
           sender_id: msg.sender_id,
+          type: msg.type,
+          file_url: msg.file_url,
+          file_name: msg.file_name,
+          file_type: msg.file_type,
+          file_full_url: msg.file_full_url,
+          is_edited: msg.is_edited,
+          is_deleted: msg.is_deleted,
           created_at: msg.created_at,
           sender: msg.sender
         }))
 
-        console.log('Mapped messages:', newMessages)
-
-        // Always update messages for initial load
-        messages.value = newMessages
-
-        // Scroll to bottom for initial load
         if (showLoading) {
           setTimeout(() => scrollToBottom(), 100)
         }
       } else {
-        console.error('API returned error status:', data)
         messages.value = []
       }
     } else {
-      console.error('HTTP error:', response.status, response.statusText)
+      console.error('Failed to fetch messages:', response.status, response.statusText)
       messages.value = []
     }
   } catch (error) {
@@ -543,51 +738,357 @@ const fetchMessages = async (conversationId: number, showLoading = true) => {
   }
 }
 
-const selectConversation = (contact: any) => {
-  console.log('Selecting conversation with contact:', contact)
-  // Create a conversation object from contact
+// 5. POST /chat/messages (Send Message - supports multipart/form-data)
+const sendMessage = async () => {
+  if (!selectedConversation.value) return
+  if (!newMessage.value.trim() && !selectedFile.value) return
+
+  sendingMessage.value = true
+  try {
+    const formData = new FormData()
+
+    // Add conversation_id if available
+    const convId = selectedConversation.value.conversationId
+    if (convId) {
+      formData.append('conversation_id', String(convId))
+    } else {
+      // Use receiver_id when no conversation exists
+      formData.append('receiver_id', String(selectedConversation.value.receiverId))
+    }
+
+    // Add message text
+    if (newMessage.value.trim()) {
+      formData.append('message', newMessage.value.trim())
+    }
+
+    // Add file if selected
+    if (selectedFile.value) {
+      formData.append('file', selectedFile.value)
+    }
+
+    const response = await fetch(`${API_BASE}/api/v1/chat/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Accept': 'application/json'
+        // Note: Do NOT set Content-Type for FormData, browser sets it automatically with boundary
+      },
+      body: formData
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.status === 'success') {
+        // Add the sent message to local list
+        const sentMsg = data.data
+        messages.value.push({
+          id: sentMsg.id,
+          conversation_id: sentMsg.conversation_id,
+          body: sentMsg.body,
+          sender_id: sentMsg.sender_id,
+          type: sentMsg.type,
+          file_url: sentMsg.file_url,
+          file_name: sentMsg.file_name,
+          file_type: sentMsg.file_type,
+          file_full_url: sentMsg.file_full_url,
+          is_edited: sentMsg.is_edited || false,
+          is_deleted: sentMsg.is_deleted || false,
+          created_at: sentMsg.created_at,
+          sender: sentMsg.sender
+        })
+
+        // Clear input and file
+        newMessage.value = ''
+        removeFile()
+
+        // Update conversation ID if this was a new conversation
+        if (!selectedConversation.value.conversationId && sentMsg.conversation_id) {
+          selectedConversation.value.conversationId = sentMsg.conversation_id
+          // Setup WebSocket for this new conversation
+          setupRealTimeForConversation(sentMsg.conversation_id)
+        }
+
+        // Refresh conversations list
+        fetchConversations()
+
+        // Scroll to bottom
+        scrollToBottom()
+      }
+    } else {
+      const errorData = await response.json().catch(() => null)
+      console.error('Failed to send message:', response.statusText, errorData)
+    }
+  } catch (error) {
+    console.error('Failed to send message:', error)
+  } finally {
+    sendingMessage.value = false
+  }
+}
+
+// 6. PUT /chat/messages/{id} (Update/Edit Message)
+const updateMessage = async (messageId: number, newBody: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/chat/messages/${messageId}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ body: newBody })
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.status === 'success') {
+        // Update local message
+        const idx = messages.value.findIndex((m: any) => m.id === messageId)
+        if (idx !== -1) {
+          messages.value[idx] = {
+            ...messages.value[idx],
+            body: data.data.body,
+            is_edited: data.data.is_edited
+          }
+        }
+        return true
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to update message:', error)
+    return false
+  }
+}
+
+// 7. DELETE /chat/messages/{id} (Delete Message - soft delete)
+const deleteMessageApi = async (messageId: number): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/chat/messages/${messageId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.status === 'success') {
+        // Update local message to show deleted state
+        const idx = messages.value.findIndex((m: any) => m.id === messageId)
+        if (idx !== -1) {
+          messages.value[idx] = {
+            ...messages.value[idx],
+            body: data.data.body, // "Pesan ini telah dihapus"
+            is_deleted: data.data.is_deleted
+          }
+        }
+        return true
+      }
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to delete message:', error)
+    return false
+  }
+}
+
+// 8. DELETE /chat/conversations/{id} (Delete Conversation)
+const deleteConversationApi = async (conversationId: number): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/chat/conversations/${conversationId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.status === 'success'
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to delete conversation:', error)
+    return false
+  }
+}
+
+// ========================
+// UI Interaction Methods
+// ========================
+
+// Select conversation from contacts list (starts new or existing conversation)
+const selectConversation = async (contact: any) => {
+  // Try to find existing conversation with this contact
+  const existingConv = conversations.value.find((conv: any) =>
+    conv.participant?.id === contact.id
+  )
+
+  if (existingConv) {
+    // Conversation exists, select it directly
+    selectConversationFromList(existingConv)
+    return
+  }
+
+  // No existing conversation - set up selectedConversation with receiver info
   selectedConversation.value = {
     id: contact.id,
+    receiverId: contact.id, // Will be used as receiver_id when sending first message
     name: contact.name,
     initials: contact.initials,
     color: contact.color,
-    online: contact.online
+    photo: contact.photo,
+    online: contact.online,
+    conversationId: null // No conversation yet
   }
 
-  console.log('selectedConversation set to:', selectedConversation.value)
+  messages.value = []
 
-  // Fetch actual messages for this conversation
-  // Note: In production, you should first check if a conversation exists
-  // or create one via the API. For now, we'll try to fetch messages directly
-  fetchMessages(contact.id)
-
-  // Setup real-time for this conversation
-  setupRealTimeForConversation(contact.id)
+  // Try to get or create conversation via API
+  const convId = await getOrCreateConversation(contact.id)
+  if (convId) {
+    selectedConversation.value.conversationId = convId
+    // Fetch messages for this conversation
+    await fetchMessages(convId)
+    // Setup WebSocket
+    setupRealTimeForConversation(convId)
+    // Refresh conversations list
+    fetchConversations()
+  }
 }
 
+// Select conversation from conversations list
 const selectConversationFromList = (conversation: any) => {
-  console.log('Selecting conversation from list:', conversation)
-  // Select existing conversation
   selectedConversation.value = {
-    id: conversation.id, // Use conversation ID for identification
+    id: conversation.participant?.id || conversation.id,
+    receiverId: conversation.participant?.id || conversation.id,
     name: conversation.name,
     initials: conversation.initials,
     color: conversation.color,
+    photo: conversation.photo,
     online: conversation.online,
-    conversationId: conversation.id // Store actual conversation ID
+    conversationId: conversation.id
   }
-
-  console.log('selectedConversation set to:', selectedConversation.value)
 
   // Fetch messages using conversation ID
   fetchMessages(conversation.id)
 
-  // Setup real-time for this conversation
+  // Setup real-time
   setupRealTimeForConversation(conversation.id)
 
-  // Scroll to bottom after messages load
   setTimeout(() => scrollToBottom(), 500)
 }
+
+// Go back to conversation list
+const goBack = () => {
+  selectedConversation.value = null
+  messages.value = []
+  // Refresh conversations when going back
+  fetchConversations()
+}
+
+// Confirm and delete conversation
+const confirmDeleteConversation = async () => {
+  if (!selectedConversation.value?.conversationId) return
+
+  if (confirm('Apakah Anda yakin ingin menghapus seluruh percakapan ini?')) {
+    const success = await deleteConversationApi(selectedConversation.value.conversationId)
+    if (success) {
+      // Go back to list
+      selectedConversation.value = null
+      messages.value = []
+      // Refresh conversations
+      fetchConversations()
+    }
+  }
+}
+
+// Context menu for messages
+const openMessageMenu = (event: MouseEvent, message: any) => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  // Position the menu, keeping it within viewport
+  const x = Math.min(event.clientX, window.innerWidth - 180)
+  const y = Math.min(event.clientY, window.innerHeight - 120)
+
+  contextMenu.value = {
+    visible: true,
+    x,
+    y,
+    message
+  }
+}
+
+// Close context menu on click outside
+const closeContextMenu = () => {
+  contextMenu.value.visible = false
+}
+
+// Start editing a message
+const startEditMessage = (message: any) => {
+  closeContextMenu()
+  editingMessage.value = message
+  editMessageBody.value = message.body
+}
+
+// Cancel editing
+const cancelEditMessage = () => {
+  editingMessage.value = null
+  editMessageBody.value = ''
+}
+
+// Submit edited message
+const submitEditMessage = async () => {
+  if (!editingMessage.value || !editMessageBody.value.trim()) return
+
+  savingEdit.value = true
+  const success = await updateMessage(editingMessage.value.id, editMessageBody.value.trim())
+  savingEdit.value = false
+
+  if (success) {
+    cancelEditMessage()
+  }
+}
+
+// Delete a message
+const deleteMessage = async (message: any) => {
+  closeContextMenu()
+  if (confirm('Apakah Anda yakin ingin menghapus pesan ini?')) {
+    await deleteMessageApi(message.id)
+  }
+}
+
+// File handling
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    const file = input.files[0]
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Ukuran file maksimal 10 MB')
+      return
+    }
+    selectedFile.value = file
+  }
+}
+
+const removeFile = () => {
+  selectedFile.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+// Open image in preview
+const openImage = (url: string) => {
+  imagePreviewUrl.value = url
+}
+
+// ========================
+// Real-time WebSocket
+// ========================
 
 const setupRealTimeForConversation = (conversationId: number) => {
   if (!isWebSocketEnabled || !echo) {
@@ -596,38 +1097,71 @@ const setupRealTimeForConversation = (conversationId: number) => {
   }
 
   try {
-    // Leave previous channels
+    // Leave previous conversation channel
     if (echoChannel) {
-      echoChannel.stopListening('MessageSent')
-      echo.leaveChannel(`conversation.${echoChannel.name}`)
+      echoChannel.stopListening('.MessageSent')
+      echoChannel.stopListening('.MessageUpdated')
+      echoChannel.stopListening('.MessageDeleted')
+      echo.leaveChannel(`private-conversation.${echoChannel.conversationId}`)
+      echoChannel = null
     }
 
     // Join new conversation channel
     echoChannel = echo.private(`conversation.${conversationId}`)
+    echoChannel.conversationId = conversationId
+
+    echoChannel
       .listen('.MessageSent', (event: any) => {
-        console.log('Real-time message received:', event)
-
-        // Add new message if it's not from current user
-        if (event.message.sender_id !== userId.value) {
+        console.log('Real-time: MessageSent', event)
+        const msg = event.message || event
+        // Add new message if it's not from current user (our own messages are added when sending)
+        if (msg.sender_id !== userId.value) {
           messages.value.push({
-            id: event.message.id,
-            body: event.message.body,
-            sender_id: event.message.sender_id,
-            created_at: event.message.created_at,
-            sender: event.sender
+            id: msg.id,
+            conversation_id: msg.conversation_id,
+            body: msg.body,
+            sender_id: msg.sender_id,
+            type: msg.type,
+            file_url: msg.file_url,
+            file_name: msg.file_name,
+            file_type: msg.file_type,
+            file_full_url: msg.file_full_url,
+            is_edited: msg.is_edited || false,
+            is_deleted: msg.is_deleted || false,
+            created_at: msg.created_at,
+            sender: msg.sender || event.sender
           })
-
-          // Scroll to bottom
           scrollToBottom()
         }
-
-        // Refresh conversations list
         fetchConversations()
+      })
+      .listen('.MessageUpdated', (event: any) => {
+        console.log('Real-time: MessageUpdated', event)
+        const msg = event.message || event
+        const idx = messages.value.findIndex((m: any) => m.id === msg.id)
+        if (idx !== -1) {
+          messages.value[idx] = {
+            ...messages.value[idx],
+            body: msg.body,
+            is_edited: msg.is_edited
+          }
+        }
+      })
+      .listen('.MessageDeleted', (event: any) => {
+        console.log('Real-time: MessageDeleted', event)
+        const msg = event.message || event
+        const idx = messages.value.findIndex((m: any) => m.id === msg.id)
+        if (idx !== -1) {
+          messages.value[idx] = {
+            ...messages.value[idx],
+            body: msg.body || 'Pesan ini telah dihapus',
+            is_deleted: msg.is_deleted || true
+          }
+        }
       })
       .error((error: any) => {
         console.error('WebSocket conversation channel error:', error)
         isWebSocketEnabled = false
-        // Fallback to polling
         startPollingFallback()
       })
   } catch (error) {
@@ -637,80 +1171,101 @@ const setupRealTimeForConversation = (conversationId: number) => {
   }
 }
 
-const sendMessage = async () => {
-  if (!newMessage.value.trim() || !selectedConversation.value) return
+const startRealTimeUpdates = async () => {
+  if (!isWebSocketEnabled) {
+    console.log('WebSocket disabled, using polling fallback')
+    startPollingFallback()
+    return
+  }
 
-  sendingMessage.value = true
   try {
-    const payload = {
-      receiver_id: selectedConversation.value.id,
-      message: newMessage.value
+    if (!echo) {
+      await initEcho()
     }
 
-    // If we have a conversation ID from selected conversation, use it
-    if (selectedConversation.value.conversationId) {
-      payload.conversation_id = selectedConversation.value.conversationId
-      delete payload.receiver_id
-    } else if (messages.value.length > 0) {
-      // Find conversation ID from existing conversations
-      const conversation = conversations.value.find((conv: any) =>
-        conv.participant?.id === selectedConversation.value.id
-      )
-      if (conversation) {
-        payload.conversation_id = conversation.id
-        delete payload.receiver_id
-      }
+    if (!echo) {
+      console.log('Failed to initialize Echo, using polling fallback')
+      startPollingFallback()
+      return
     }
 
-    const response = await fetch(`${API_BASE}/api/v1/chat/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.status === 'success') {
-        // Add the sent message to local list
-        messages.value.push({
-          id: data.data.id,
-          body: data.data.body,
-          sender_id: userId.value,
-          created_at: data.data.created_at,
-          sender: { id: userId.value, name: 'Anda' }
-        })
-
-        // Clear input
-        newMessage.value = ''
-
-        // Refresh conversations immediately to update latest message
+    // Setup user-specific channel for new message notifications
+    privateChannel = echo.private(`user.${userId.value}`)
+    privateChannel
+      .listen('.MessageSent', (event: any) => {
+        console.log('User channel: New message notification', event)
+        // Refresh conversations list
         fetchConversations()
-
-        // If this created a new conversation, update selectedConversation with conversationId
-        if (!selectedConversation.value.conversationId && data.data.conversation_id) {
-          selectedConversation.value.conversationId = data.data.conversation_id
-        }
-
-        // Scroll to bottom
-        scrollToBottom()
-      }
-    } else {
-      console.error('Failed to send message:', response.statusText)
-    }
+      })
+      .error((error: any) => {
+        console.error('WebSocket user channel error:', error)
+        isWebSocketEnabled = false
+        startPollingFallback()
+      })
   } catch (error) {
-    console.error('Failed to send message:', error)
-  } finally {
-    sendingMessage.value = false
+    console.error('Failed to setup WebSocket:', error)
+    isWebSocketEnabled = false
+    startPollingFallback()
   }
 }
 
+const startPollingFallback = () => {
+  console.log('Starting polling fallback for real-time updates')
+
+  // Clear any existing intervals
+  stopPollingFallback()
+
+  // Poll conversations every 10 seconds
+  const convInterval = setInterval(() => {
+    fetchConversations()
+  }, 10000)
+  pollingIntervals.push(convInterval)
+
+  // Poll messages every 5 seconds if conversation is selected
+  const msgInterval = setInterval(() => {
+    if (selectedConversation.value?.conversationId) {
+      fetchMessages(selectedConversation.value.conversationId, false)
+    }
+  }, 5000)
+  pollingIntervals.push(msgInterval)
+}
+
+const stopPollingFallback = () => {
+  pollingIntervals.forEach(interval => clearInterval(interval))
+  pollingIntervals = []
+}
+
+const stopRealTimeUpdates = () => {
+  if (isWebSocketEnabled && echo) {
+    if (echoChannel) {
+      echoChannel.stopListening('.MessageSent')
+      echoChannel.stopListening('.MessageUpdated')
+      echoChannel.stopListening('.MessageDeleted')
+      try {
+        echo.leaveChannel(`private-conversation.${echoChannel.conversationId}`)
+      } catch (e) { /* ignore */ }
+      echoChannel = null
+    }
+
+    if (privateChannel) {
+      privateChannel.stopListening('.MessageSent')
+      try {
+        echo.leaveChannel(`private-user.${userId.value}`)
+      } catch (e) { /* ignore */ }
+      privateChannel = null
+    }
+  }
+  stopPollingFallback()
+}
+
+// ========================
+// Utility Methods
+// ========================
+
 const formatTime = (dateString: string) => {
+  if (!dateString) return ''
   const date = new Date(dateString)
-  return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 const formatDate = (date: Date) => {
@@ -751,179 +1306,40 @@ const autoResizeTextarea = (event: Event) => {
   textarea.style.height = Math.min(textarea.scrollHeight, 128) + 'px'
 }
 
-const getColorForContact = (contact: any) => {
-  // Consistent color based on contact ID
-  const colors = ['bg-primary-600', 'bg-indigo-500', 'bg-emerald-600', 'bg-slate-700', 'bg-purple-600', 'bg-rose-600']
-  return colors[Math.abs(contact.id) % colors.length]
-}
-
-const startRealTimeUpdates = async () => {
-  if (!isWebSocketEnabled) {
-    console.log('WebSocket disabled, using polling fallback')
-    startPollingFallback()
-    return
-  }
-
-  try {
-    // Initialize Echo if not already done
-    if (!echo) {
-      await initEcho()
-    }
-
-    if (!echo) {
-      console.log('Failed to initialize Echo, using polling fallback')
-      startPollingFallback()
-      return
-    }
-
-    // Setup real-time for conversations
-    privateChannel = echo.private(`user.${userId.value}`)
-      .listen('.MessageSent', (event: any) => {
-        console.log('New message notification:', event)
-
-        // Refresh conversations when new message arrives
-        fetchConversations()
-
-        // If we have a selected conversation and the message is for it, add it
-        if (selectedConversation.value && event.message.conversation_id === selectedConversation.value.conversationId) {
-          // Message will be handled by conversation-specific channel
-        }
-      })
-      .error((error: any) => {
-        console.error('WebSocket user channel error:', error)
-        isWebSocketEnabled = false
-        startPollingFallback()
-      })
-  } catch (error) {
-    console.error('Failed to setup WebSocket:', error)
-    isWebSocketEnabled = false
-    startPollingFallback()
-  }
-}
-
-const startPollingFallback = () => {
-  console.log('Starting polling fallback for real-time updates')
-
-  // Poll conversations every 10 seconds
-  setInterval(() => {
-    if (activeCategory.value === 'Semua') {
-      fetchConversations()
-    }
-  }, 10000)
-
-  // Poll messages every 5 seconds if conversation is selected
-  setInterval(() => {
-    if (selectedConversation.value) {
-      const conversationId = selectedConversation.value.conversationId ||
-        conversations.value.find((conv: any) =>
-          conv.participant?.id === selectedConversation.value.id
-        )?.id
-
-      if (conversationId) {
-        fetchMessages(conversationId, false) // Don't show loading for polling
-      }
-    }
-  }, 5000)
-}
-
-const stopRealTimeUpdates = () => {
-  if (isWebSocketEnabled && echo) {
-    if (echoChannel) {
-      echoChannel.stopListening('MessageSent')
-      echo.leaveChannel(`conversation.${echoChannel.name}`)
-      echoChannel = null
-    }
-
-    if (privateChannel) {
-      privateChannel.stopListening('MessageSent')
-      echo.leaveChannel(`user.${userId.value}`)
-      privateChannel = null
-    }
-  }
-}
-
+// ========================
 // Watchers
-watch(activeCategory, (newCategory, oldCategory) => {
-  // Stop polling when switching away from "Semua"
-  if (oldCategory === 'Semua' && newCategory !== 'Semua') {
-    // Real-time is always active, no need to stop
-  }
+// ========================
 
-  // Clear selected conversation when switching categories
+watch(activeCategory, (newCategory, oldCategory) => {
   if (newCategory !== oldCategory) {
     selectedConversation.value = null
     messages.value = []
   }
 })
 
+// Close context menu on click outside
+const handleClickOutside = () => {
+  if (contextMenu.value.visible) {
+    closeContextMenu()
+  }
+}
+
+// ========================
 // Lifecycle
+// ========================
+
 onMounted(async () => {
   console.log('Chat component mounted, initializing...')
   fetchContacts()
   fetchConversations()
   await startRealTimeUpdates()
 
-  // Add dummy data for testing (remove in production)
-  setTimeout(() => {
-    if (conversations.value.length === 0) {
-      conversations.value = [
-        {
-          id: 1,
-          name: 'Admin Pelabuhan',
-          initials: 'AP',
-          lastMessage: 'Selamat datang di aplikasi!',
-          time: '10:30',
-          unread: 0,
-          online: true,
-          color: 'bg-primary-600',
-          participant: { id: 1, name: 'Admin Pelabuhan' }
-        },
-        {
-          id: 2,
-          name: 'Capt. Heri',
-          initials: 'CH',
-          lastMessage: 'Ikan sudah siap diantar',
-          time: '09:15',
-          unread: 2,
-          online: false,
-          color: 'bg-emerald-600',
-          participant: { id: 2, name: 'Capt. Heri' }
-        }
-      ]
-    }
-
-    if (contacts.value.length === 0) {
-      contacts.value = [
-        {
-          id: 1,
-          name: 'Admin Pelabuhan',
-          initials: 'AP',
-          role: 'Petugas',
-          online: true,
-          lastSeen: 'Online',
-          lastMessage: 'Selamat datang!',
-          unread: 0,
-          color: 'bg-primary-600',
-          category: 'Petugas'
-        },
-        {
-          id: 2,
-          name: 'Capt. Heri',
-          initials: 'CH',
-          role: 'Pengelola',
-          online: false,
-          lastSeen: '2 jam yang lalu',
-          lastMessage: 'Ikan sudah ready',
-          unread: 2,
-          color: 'bg-emerald-600',
-          category: 'Pengelola'
-        }
-      ]
-    }
-  }, 1000)
+  // Add click listener to close context menu
+  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
   stopRealTimeUpdates()
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>

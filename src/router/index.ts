@@ -7,16 +7,29 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: Login
+    component: Login,
+    meta: { guest: true }
   },
   {
     path: '/register',
     name: 'Register',
-    component: () => import('../views/Register.vue')
+    component: () => import('../views/Register.vue'),
+    meta: { guest: true }
+  },
+  {
+    path: '/privacy-policy',
+    name: 'PrivacyPolicy',
+    component: () => import('../views/PrivacyPolicy.vue')
+  },
+  {
+    path: '/terms',
+    name: 'Terms',
+    component: () => import('../views/Terms.vue')
   },
   {
     path: '/',
     component: AppLayout,
+    meta: { requiresAuth: true },
     children: [
       {
         path: '',
@@ -65,6 +78,20 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Navigation guard: redirect to login if not authenticated
+router.beforeEach((to, _from, next) => {
+  const isAuthenticated = !!localStorage.getItem('token')
+
+  if (to.matched.some(record => record.meta.requiresAuth) && !isAuthenticated) {
+    next({ name: 'Login' })
+  } else if (to.matched.some(record => record.meta.guest) && isAuthenticated) {
+    // Already logged in users shouldn't see login/register
+    next({ name: 'Dashboard' })
+  } else {
+    next()
+  }
 })
 
 export default router

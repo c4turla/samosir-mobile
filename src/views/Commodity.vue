@@ -97,7 +97,7 @@ const fishConfig: Record<string, { emoji: string, bg: string }> = {
 const fetchData = async () => {
   isLoading.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     const headers = {
@@ -111,11 +111,11 @@ const fetchData = async () => {
     
     if (dataFish.status === 'success') {
       commodities.value = dataFish.data.map((item: any) => {
-        const config = fishConfig[item.name] || fishConfig['default']
+        const config = fishConfig[item.species_name] || fishConfig['default']
         return {
-          name: item.name,
+          name: item.species_name,
           stock: 'N/A', // API fish endpoint doesn't seem to have stock
-          price: item.base_price || 0,
+          price: item.estimated_value || 0,
           emoji: config.emoji,
           bg: config.bg
         }
@@ -128,12 +128,12 @@ const fetchData = async () => {
     
     if (dataArrivals.status === 'success') {
       manifests.value = (dataArrivals.data.data || []).map((item: any) => ({
-        name: item.vessel?.name || 'Unknown Vessel',
-        dock: item.landing_site?.name || '-',
+        name: item.vessel?.vessel_name || 'Unknown Vessel',
+        dock: item.landing_site?.site_name || '-',
         cargo: (item.catches || []).map((c: any) => ({
-          type: c.fish_species?.name || 'Unknown Fish',
-          amount: `${c.weight} Kg`,
-          emoji: (fishConfig[c.fish_species?.name] || fishConfig['default']).emoji
+          type: c.fish_species?.species_name || 'Unknown Fish',
+          amount: `${c.weight_kg} Kg`,
+          emoji: (fishConfig[c.fish_species?.species_name] || fishConfig['default']).emoji
         }))
       })).filter((m: any) => m.cargo.length > 0).slice(0, 5)
     }

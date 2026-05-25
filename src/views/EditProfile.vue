@@ -280,7 +280,7 @@ const onPhotoChange = (e: Event) => {
 
 const fetchProfile = async () => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const baseUrl = import.meta.env.VITE_API_URL
     const token = localStorage.getItem('token')
     if (!token) return
 
@@ -317,7 +317,7 @@ const handleSaveProfile = async () => {
   errors.value = {}
 
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const baseUrl = import.meta.env.VITE_API_URL
     const token = localStorage.getItem('token')
 
     // Use FormData for multipart/form-data (supports file upload)
@@ -375,7 +375,7 @@ const handleChangePassword = async () => {
   }
 
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const baseUrl = import.meta.env.VITE_API_URL
     const token = localStorage.getItem('token')
 
     const response = await fetch(`${baseUrl}/profile/change-password`, {

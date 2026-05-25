@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Anchor, MessageSquare, Users } from 'lucide-vue-next'
 
@@ -108,7 +108,7 @@ const schedules = ref<any[]>([])
 const fetchData = async () => {
   isLoading.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     const headers = {
@@ -168,7 +168,6 @@ const fetchData = async () => {
   }
 }
 
-import { onMounted } from 'vue'
 onMounted(() => {
   fetchData()
 })

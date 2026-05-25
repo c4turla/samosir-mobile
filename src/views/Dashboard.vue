@@ -296,7 +296,7 @@ const formatDateTime = (dateStr: string, timeStr: string) => {
 const fetchDashboardData = async () => {
   isLoading.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     const headers: Record<string, string> = {

@@ -48,7 +48,7 @@
           </div>
           <div>
             <h4 class="text-sm font-bold text-gray-800 dark:text-gray-100">Mode Gelap</h4>
-            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Optimalkan baterai &amp; kenyamanan mata</p>
+            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Optimalkan baterai & kenyamanan mata</p>
           </div>
         </div>
         <button 
@@ -61,7 +61,7 @@
     </section>
 
     <!-- Vessel Quick Info / QR (Pengelola Only) -->
-    <section v-if="userProfile.role === 'pengelola'" class="bg-slate-900 rounded-[2.5rem] p-6 text-white mb-8 relative overflow-hidden group">
+    <section v-if="userProfile.role === 'pengelola_kapal' || userProfile.role === 'pengelola'" class="bg-slate-900 rounded-[2.5rem] p-6 text-white mb-8 relative overflow-hidden group">
       <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-all"></div>
       <div class="relative z-10 flex items-center space-x-4">
         <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-900 shadow-xl shadow-slate-900/50">
@@ -172,11 +172,12 @@ const userProfile = ref({
 
 const fetchProfile = async () => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8004/api/v1'
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     if (!token) {
-      router.push('/login')
+      // Public user without API token - just use localStorage data
+      isLoading.value = false
       return
     }
 
@@ -259,7 +260,7 @@ const umumMenuItems = [
 ]
 
 const filteredMenuItems = computed(() => {
-  return userProfile.value.role === 'pengelola' ? pengelolaMenuItems : umumMenuItems
+  return userProfile.value.role === 'pengelola_kapal' || userProfile.value.role === 'pengelola' ? pengelolaMenuItems : umumMenuItems
 })
 </script>
 
