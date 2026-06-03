@@ -59,12 +59,12 @@ import {
 const userRole = ref(localStorage.getItem('userRole') || 'umum')
 
 const allNavItems = [
-  { name: 'Dashboard', label: 'Home', to: '/', icon: LayoutDashboard },
-  { name: 'Schedule', label: 'Jadwal', to: '/schedule', icon: CalendarDays },
-  { name: 'Commodity', label: 'Ikan', to: '/commodity', icon: Fish, role: 'umum' },
-  { name: 'Report', label: 'Lapor', to: '/report', icon: FileText, role: 'pengelola' },
-  { name: 'Chat', label: 'Chat', to: '/chat', icon: MessageCircle },
-  { name: 'Profile', label: 'Profil', to: '/profile', icon: UserCircle },
+  { name: 'Dashboard', label: 'Home', to: '/home', icon: LayoutDashboard },
+  { name: 'Schedule', label: 'Jadwal', to: '/home/schedule', icon: CalendarDays },
+  { name: 'Commodity', label: 'Ikan', to: '/home/commodity', icon: Fish, role: 'umum' },
+  { name: 'Report', label: 'Lapor', to: '/home/report', icon: FileText, role: 'pengelola' },
+  { name: 'Chat', label: 'Chat', to: '/home/chat', icon: MessageCircle },
+  { name: 'Profile', label: 'Profil', to: '/home/profile', icon: UserCircle },
 ]
 
 const navItems = ref(allNavItems.filter(item => !item.role || item.role === userRole.value))

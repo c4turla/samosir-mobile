@@ -20,7 +20,8 @@
         </defs>
       </svg>
       <div class="auth-wave-logo">
-        <img src="/logo2.png" alt="SAMOSIR Logo" class="auth-logo-img" />
+        <img src="/logobaru.webp" alt="SAMOSIR Logo" class="auth-logo-img" />
+        <div class="auth-logo-glow"></div>
       </div>
     </div>
 
@@ -95,6 +96,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_URL } from '@/config'
 
 const router = useRouter()
 const form = reactive({ email: '', password: '' })
@@ -121,8 +123,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
-    const response = await fetch(`${baseUrl}/login`, {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(form)
@@ -140,6 +141,7 @@ const handleLogin = async () => {
     if (token) localStorage.setItem('token', token)
 
     if (payload.user) {
+      if (payload.user.id) localStorage.setItem('userId', String(payload.user.id))
       localStorage.setItem('userRole', payload.user.role || 'umum')
       localStorage.setItem('userName', payload.user.name || 'User')
     } else {
@@ -147,7 +149,7 @@ const handleLogin = async () => {
       localStorage.setItem('userName', 'User')
     }
 
-    router.push('/')
+    router.push('/home')
   } catch (err: any) {
     errorMessage.value = err.message || 'Koneksi ke server gagal. Pastikan API menyala.'
   } finally {
@@ -186,26 +188,45 @@ const handleLogin = async () => {
 
 .auth-wave-logo {
   position: absolute;
-  top: 14px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
-  width: 96px;
-  height: 96px;
+  width: 140px;
+  height: 140px;
   background: #ffffff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  border: 4px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 40px rgba(14, 165, 233, 0.3);
   overflow: hidden;
   transition: all 0.3s ease;
+  z-index: 10;
 }
 
 .auth-logo-img {
-  width: 96%;
-  height: 96%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  padding: 8px;
+}
+
+.auth-logo-glow {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.25) 0%, transparent 80%);
+  animation: logo-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes logo-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
 }
 
 /* ── Body ────────────────────────────── */

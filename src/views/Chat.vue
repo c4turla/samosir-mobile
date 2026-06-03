@@ -1,4 +1,5 @@
 <template>
+  <div class="h-full">
   <!-- Chat List View (Sidebar) -->
   <div v-if="!selectedConversation" class="flex flex-col h-full bg-white dark:bg-slate-950 transition-colors duration-300">
     <!-- Chat Categories -->
@@ -186,9 +187,9 @@
       </div>
 
       <!-- Messages -->
-      <div v-for="message in messages" :key="message.id" class="flex" :class="message.sender_id === userId ? 'justify-end' : 'justify-start'">
+      <div v-for="message in messages" :key="message.id" class="flex" :class="Number(message.sender_id) === Number(userId) ? 'justify-end' : 'justify-start'">
         <!-- My messages (sent by current user) -->
-        <div v-if="message.sender_id === userId" class="max-w-[75%] space-y-1">
+        <div v-if="Number(message.sender_id) === Number(userId)" class="max-w-[75%] space-y-1">
           <div
             class="bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 text-white px-5 py-3 rounded-3xl rounded-br-md shadow-lg ml-auto relative group"
             @contextmenu.prevent="openMessageMenu($event, message)"
@@ -372,7 +373,9 @@
           class="p-3 bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
         >
           <svg v-if="!sendingMessage" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10l9-6 9 6-9 6-9-6z" fill="none" stroke="none"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2L11 13"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2l-7 20-4-9-9-4 20-7z"></path>
           </svg>
           <div v-else class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         </button>
@@ -387,7 +390,7 @@
     :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
   >
     <button
-      v-if="contextMenu.message?.sender_id === userId && !contextMenu.message?.is_deleted"
+      v-if="Number(contextMenu.message?.sender_id) === Number(userId) && !contextMenu.message?.is_deleted"
       @click="startEditMessage(contextMenu.message)"
       class="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
     >
@@ -397,7 +400,7 @@
       <span class="text-sm text-gray-700 dark:text-gray-300">Edit</span>
     </button>
     <button
-      v-if="contextMenu.message?.sender_id === userId && !contextMenu.message?.is_deleted"
+      v-if="Number(contextMenu.message?.sender_id) === Number(userId) && !contextMenu.message?.is_deleted"
       @click="deleteMessage(contextMenu.message)"
       class="w-full flex items-center space-x-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
     >
@@ -440,15 +443,14 @@
   <div v-if="imagePreviewUrl" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80" @click="imagePreviewUrl = null">
     <img :src="imagePreviewUrl" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
   </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
-
-// API Configuration
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import { API_URL, REVERB_APP_KEY, REVERB_HOST, REVERB_PORT } from '@/config'
 
 // Configure Laravel Echo for real-time communication
 declare global {
@@ -463,25 +465,36 @@ let echo: any = null
 
 const initEcho = async () => {
   try {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    const token = localStorage.getItem('token')
+    if (!token) {
+      console.warn('No auth token found, skipping Echo initialization')
+      isWebSocketEnabled = false
+      return
+    }
+
+    const authUrl = `${API_URL}/broadcasting/auth`
 
     echo = new Echo({
-      broadcaster: 'reverb',
-      key: import.meta.env.VITE_REVERB_APP_KEY || 'your-app-key',
-      wsHost: import.meta.env.VITE_REVERB_HOST || 'localhost',
-      wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
+      broadcaster: 'pusher',
+      key: REVERB_APP_KEY,
+      cluster: '',
+      wsHost: REVERB_HOST,
+      wsPort: Number(REVERB_PORT),
+      wssPort: Number(REVERB_PORT),
       forceTLS: false,
       encrypted: false,
       disableStats: true,
       enabledTransports: ['ws', 'wss'],
+      authEndpoint: authUrl,
       auth: {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
       }
     })
 
-    console.log(`Laravel Echo initialized (mobile: ${isMobile})`)
+    console.log(`Laravel Echo initialized, authEndpoint: ${authUrl}`)
   } catch (error) {
     console.error('Failed to initialize Laravel Echo:', error)
     isWebSocketEnabled = false
@@ -502,7 +515,7 @@ const loadingMessages = ref(false)
 const sendingMessage = ref(false)
 const activeCategory = ref('Semua')
 const isTyping = ref(false)
-const messagesContainer = ref(null)
+const messagesContainer = ref<HTMLElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<File | null>(null)
 const imagePreviewUrl = ref<string | null>(null)
@@ -525,6 +538,7 @@ let echoChannel: any = null
 let privateChannel: any = null
 let isWebSocketEnabled = true
 let pollingIntervals: ReturnType<typeof setInterval>[] = []
+let isMounted = false
 
 // Role to category mapping
 const roleToCategory = (role: string): string => {
@@ -568,7 +582,7 @@ const filteredContacts = computed(() => {
 // Consistent color based on ID
 const getColorForId = (id: number): string => {
   const colors = ['bg-primary-600', 'bg-indigo-500', 'bg-emerald-600', 'bg-slate-700', 'bg-purple-600', 'bg-rose-600']
-  return colors[Math.abs(id) % colors.length]
+  return colors[Math.abs(id) % colors.length] || 'bg-primary-600'
 }
 
 const getColorForContact = (contact: any) => {
@@ -592,11 +606,14 @@ const getAuthHeaders = () => ({
 
 // 1. GET /chat/contacts
 const fetchContacts = async () => {
+  if (!isMounted) return
   loadingContacts.value = true
   try {
-    const response = await fetch(`${API_BASE}/api/v1/chat/contacts`, {
+    const response = await fetch(`${API_URL}/chat/contacts`, {
       headers: getAuthHeaders()
     })
+
+    if (!isMounted) return
 
     if (response.ok) {
       const data = await response.json()
@@ -623,11 +640,14 @@ const fetchContacts = async () => {
 
 // 2. GET /chat/conversations
 const fetchConversations = async () => {
+  if (!isMounted) return
   loadingConversations.value = true
   try {
-    const response = await fetch(`${API_BASE}/api/v1/chat/conversations`, {
+    const response = await fetch(`${API_URL}/chat/conversations`, {
       headers: getAuthHeaders()
     })
+
+    if (!isMounted) return
 
     if (response.ok) {
       const data = await response.json()
@@ -663,7 +683,7 @@ const fetchConversations = async () => {
 // 3. POST /chat/conversations/get (Get or Create Conversation)
 const getOrCreateConversation = async (receiverId: number): Promise<number | null> => {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/chat/conversations/get`, {
+    const response = await fetch(`${API_URL}/chat/conversations/get`, {
       method: 'POST',
       headers: {
         ...getAuthHeaders(),
@@ -687,6 +707,7 @@ const getOrCreateConversation = async (receiverId: number): Promise<number | nul
 
 // 4. GET /chat/conversations/{id}/messages
 const fetchMessages = async (conversationId: number, showLoading = true) => {
+  if (!isMounted) return
   if (!conversationId) {
     messages.value = []
     return
@@ -695,9 +716,11 @@ const fetchMessages = async (conversationId: number, showLoading = true) => {
   if (showLoading) loadingMessages.value = true
 
   try {
-    const response = await fetch(`${API_BASE}/api/v1/chat/conversations/${conversationId}/messages?per_page=50`, {
+    const response = await fetch(`${API_URL}/chat/conversations/${conversationId}/messages?per_page=50`, {
       headers: getAuthHeaders()
     })
+
+    if (!isMounted) return
 
     if (response.ok) {
       const data = await response.json()
@@ -766,7 +789,7 @@ const sendMessage = async () => {
       formData.append('file', selectedFile.value)
     }
 
-    const response = await fetch(`${API_BASE}/api/v1/chat/messages`, {
+    const response = await fetch(`${API_URL}/chat/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -828,7 +851,7 @@ const sendMessage = async () => {
 // 6. PUT /chat/messages/{id} (Update/Edit Message)
 const updateMessage = async (messageId: number, newBody: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/chat/messages/${messageId}`, {
+    const response = await fetch(`${API_URL}/chat/messages/${messageId}`, {
       method: 'PUT',
       headers: {
         ...getAuthHeaders(),
@@ -862,7 +885,7 @@ const updateMessage = async (messageId: number, newBody: string): Promise<boolea
 // 7. DELETE /chat/messages/{id} (Delete Message - soft delete)
 const deleteMessageApi = async (messageId: number): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/chat/messages/${messageId}`, {
+    const response = await fetch(`${API_URL}/chat/messages/${messageId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })
@@ -892,7 +915,7 @@ const deleteMessageApi = async (messageId: number): Promise<boolean> => {
 // 8. DELETE /chat/conversations/{id} (Delete Conversation)
 const deleteConversationApi = async (conversationId: number): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/chat/conversations/${conversationId}`, {
+    const response = await fetch(`${API_URL}/chat/conversations/${conversationId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })
@@ -1102,12 +1125,12 @@ const setupRealTimeForConversation = (conversationId: number) => {
       echoChannel.stopListening('.MessageSent')
       echoChannel.stopListening('.MessageUpdated')
       echoChannel.stopListening('.MessageDeleted')
-      echo.leaveChannel(`private-conversation.${echoChannel.conversationId}`)
+      echo.leaveChannel(`private-chat.${echoChannel.conversationId}`)
       echoChannel = null
     }
 
     // Join new conversation channel
-    echoChannel = echo.private(`conversation.${conversationId}`)
+    echoChannel = echo.private(`chat.${conversationId}`)
     echoChannel.conversationId = conversationId
 
     echoChannel
@@ -1172,6 +1195,8 @@ const setupRealTimeForConversation = (conversationId: number) => {
 }
 
 const startRealTimeUpdates = async () => {
+  if (!isMounted) return
+
   if (!isWebSocketEnabled) {
     console.log('WebSocket disabled, using polling fallback')
     startPollingFallback()
@@ -1183,6 +1208,8 @@ const startRealTimeUpdates = async () => {
       await initEcho()
     }
 
+    if (!isMounted) return
+
     if (!echo) {
       console.log('Failed to initialize Echo, using polling fallback')
       startPollingFallback()
@@ -1190,9 +1217,10 @@ const startRealTimeUpdates = async () => {
     }
 
     // Setup user-specific channel for new message notifications
-    privateChannel = echo.private(`user.${userId.value}`)
+    privateChannel = echo.private(`App.Models.User.${userId.value}`)
     privateChannel
       .listen('.MessageSent', (event: any) => {
+        if (!isMounted) return
         console.log('User channel: New message notification', event)
         // Refresh conversations list
         fetchConversations()
@@ -1210,6 +1238,7 @@ const startRealTimeUpdates = async () => {
 }
 
 const startPollingFallback = () => {
+  if (!isMounted) return
   console.log('Starting polling fallback for real-time updates')
 
   // Clear any existing intervals
@@ -1217,12 +1246,20 @@ const startPollingFallback = () => {
 
   // Poll conversations every 10 seconds
   const convInterval = setInterval(() => {
+    if (!isMounted) {
+      stopPollingFallback()
+      return
+    }
     fetchConversations()
   }, 10000)
   pollingIntervals.push(convInterval)
 
   // Poll messages every 5 seconds if conversation is selected
   const msgInterval = setInterval(() => {
+    if (!isMounted) {
+      stopPollingFallback()
+      return
+    }
     if (selectedConversation.value?.conversationId) {
       fetchMessages(selectedConversation.value.conversationId, false)
     }
@@ -1242,7 +1279,7 @@ const stopRealTimeUpdates = () => {
       echoChannel.stopListening('.MessageUpdated')
       echoChannel.stopListening('.MessageDeleted')
       try {
-        echo.leaveChannel(`private-conversation.${echoChannel.conversationId}`)
+        echo.leaveChannel(`private-chat.${echoChannel.conversationId}`)
       } catch (e) { /* ignore */ }
       echoChannel = null
     }
@@ -1250,7 +1287,7 @@ const stopRealTimeUpdates = () => {
     if (privateChannel) {
       privateChannel.stopListening('.MessageSent')
       try {
-        echo.leaveChannel(`private-user.${userId.value}`)
+        echo.leaveChannel(`private-App.Models.User.${userId.value}`)
       } catch (e) { /* ignore */ }
       privateChannel = null
     }
@@ -1329,16 +1366,41 @@ const handleClickOutside = () => {
 // ========================
 
 onMounted(async () => {
+  isMounted = true
   console.log('Chat component mounted, initializing...')
+  
+  // Fetch profile to get real user ID first
+  const token = localStorage.getItem('token')
+  if (token) {
+    try {
+      const response = await fetch(`${API_URL}/me`, {
+        headers: getAuthHeaders()
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const user = data.data || data
+        if (user && user.id) {
+          userId.value = Number(user.id)
+          localStorage.setItem('userId', String(user.id))
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching profile in chat:', e)
+    }
+  }
+
   fetchContacts()
   fetchConversations()
   await startRealTimeUpdates()
+
+  if (!isMounted) return
 
   // Add click listener to close context menu
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
+  isMounted = false
   stopRealTimeUpdates()
   document.removeEventListener('click', handleClickOutside)
 })

@@ -4,7 +4,7 @@
     <section>
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white leading-tight">Halo, {{ userName }} 👋</h2>
-        <button @click="router.push('/profile')" class="bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 p-2 rounded-xl">
+        <button @click="router.push({ name: 'Profile' })" class="bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 p-2 rounded-xl">
           <Settings class="w-5 h-5" />
         </button>
       </div>
@@ -28,6 +28,29 @@
             <p class="text-xs font-bold">{{ vessel.name }}</p>
           </div>
         </button>
+      </div>
+
+      <!-- Alert Melengkapi Dokumen (Pengelola Only) -->
+      <div v-if="userRole === 'pengelola' && hasIncompleteDocs" class="mt-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-3xl p-5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+        <div class="flex items-start space-x-3.5">
+          <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <AlertTriangle class="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="text-sm font-bold text-amber-800 dark:text-amber-400">Dokumen Belum Lengkap</h4>
+            <p class="text-xs text-amber-700 dark:text-amber-505 mt-1 leading-relaxed">
+              Anda belum melengkapi dokumen <span class="font-semibold">{{ missingDocs.join(' & ') }}</span>. 
+              Silakan unggah dokumen untuk dapat melakukan pendaftaran kapal, pelaporan, dan pengajuan jasa.
+            </p>
+            <button 
+              @click="router.push({ name: 'EditProfile' })"
+              class="mt-3.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors flex items-center space-x-1.5"
+            >
+              <span>Lengkapi Sekarang</span>
+              <ChevronRight class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Quick Info Bar (Public Only) -->
@@ -65,7 +88,7 @@
       <section class="mt-8">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Riwayat Terbaru - {{ currentVessel.name }}</h3>
-          <router-link to="/schedule" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</router-link>
+          <router-link :to="{ name: 'Schedule' }" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</router-link>
         </div>
         <div class="space-y-3">
           <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
@@ -97,7 +120,7 @@
       <section>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Kapal Terbaru</h3>
-          <router-link to="/schedule" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</router-link>
+          <router-link :to="{ name: 'Schedule' }" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</router-link>
         </div>
 
         <!-- Loading state -->
@@ -143,7 +166,7 @@
     <section v-if="userRole === 'pengelola'" class="animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Aktivitas Terbaru</h3>
-        <router-link to="/schedule" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Logbook</router-link>
+        <router-link :to="{ name: 'Schedule' }" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Logbook</router-link>
       </div>
       <div v-if="latestActivity" class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
         <div class="flex items-center space-x-3">
@@ -168,7 +191,7 @@
     <section v-if="userRole === 'umum'" class="animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Harga Ikan Hari Ini</h3>
-        <router-link to="/commodity" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Semua Ikan</router-link>
+        <router-link :to="{ name: 'Commodity' }" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Semua Ikan</router-link>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div v-for="fish in fishPrices" :key="fish.name" class="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
@@ -264,12 +287,15 @@ import {
   Info,
   AlertTriangle
 } from 'lucide-vue-next'
+import { API_URL } from '@/config'
 
 const router = useRouter()
 const selectedVesselId = ref(0)
 const userRole = ref(localStorage.getItem('userRole') || 'umum')
 const userName = ref(localStorage.getItem('userName') || 'Pengunjung')
 const isLoading = ref(true)
+const hasIncompleteDocs = ref(false)
+const missingDocs = ref<string[]>([])
 
 // Dynamic data
 const publicShips = ref<any[]>([])
@@ -296,7 +322,6 @@ const formatDateTime = (dateStr: string, timeStr: string) => {
 const fetchDashboardData = async () => {
   isLoading.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     const headers: Record<string, string> = {
@@ -306,12 +331,34 @@ const fetchDashboardData = async () => {
       headers['Authorization'] = `Bearer ${token}`
     }
 
-    // Fetch Arrivals
-    const resArrivals = await fetch(`${baseUrl}/arrivals`, { headers })
+    // Check document status for pengelola role
+    if (userRole.value === 'pengelola' && token) {
+      try {
+        const resMe = await fetch(`${API_URL}/me`, { headers })
+        if (resMe.ok) {
+          const dataMe = await resMe.json()
+          const user = dataMe.data || dataMe
+          if (user) {
+            if (user.id) {
+              localStorage.setItem('userId', String(user.id))
+            }
+            const missing = []
+            if (!user.id_card) missing.push('KTP')
+            if (!user.authorization_letter) missing.push('Surat Kuasa')
+            
+            hasIncompleteDocs.value = missing.length > 0
+            missingDocs.value = missing
+          }
+        }
+      } catch (meError) {
+        console.error('Gagal mengambil data profil:', meError)
+      }
+    }
+
+    const resArrivals = await fetch(`${API_URL}/arrivals`, { headers })
     const dataArrivals = await resArrivals.json()
     
-    // Fetch Departures
-    const resDepartures = await fetch(`${baseUrl}/departures`, { headers })
+    const resDepartures = await fetch(`${API_URL}/departures`, { headers })
     const dataDepartures = await resDepartures.json()
 
     const arrivalsList = (dataArrivals.data?.data || []).map((item: any) => ({
@@ -366,7 +413,7 @@ const fetchDashboardData = async () => {
     // Fetch Fish prices (for umum)
     if (userRole.value === 'umum') {
       try {
-        const resFish = await fetch(`${baseUrl}/fish`, { headers })
+        const resFish = await fetch(`${API_URL}/fish`, { headers })
         const dataFish = await resFish.json()
         if (dataFish.status === 'success') {
           fishPrices.value = (dataFish.data || []).slice(0, 4).map((item: any) => ({

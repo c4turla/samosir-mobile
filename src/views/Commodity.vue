@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 import { Fish, TrendingUp, ShoppingCart, Anchor } from 'lucide-vue-next'
+import { API_URL } from '@/config'
 
 import { ref, onMounted } from 'vue'
 
@@ -97,7 +98,6 @@ const fishConfig: Record<string, { emoji: string, bg: string }> = {
 const fetchData = async () => {
   isLoading.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     const headers = {
@@ -105,13 +105,12 @@ const fetchData = async () => {
       'Authorization': `Bearer ${token}`
     }
 
-    // Fetch Fish Species
-    const resFish = await fetch(`${baseUrl}/fish`, { headers })
+    const resFish = await fetch(`${API_URL}/fish`, { headers })
     const dataFish = await resFish.json()
     
     if (dataFish.status === 'success') {
       commodities.value = dataFish.data.map((item: any) => {
-        const config = fishConfig[item.species_name] || fishConfig['default']
+        const config = fishConfig[item.species_name] || fishConfig['default'] || { emoji: '🐟', bg: 'bg-gray-50 dark:bg-gray-900/10' }
         return {
           name: item.species_name,
           stock: 'N/A', // API fish endpoint doesn't seem to have stock
@@ -122,8 +121,7 @@ const fetchData = async () => {
       })
     }
 
-    // Fetch Arrivals for Manifests
-    const resArrivals = await fetch(`${baseUrl}/arrivals`, { headers })
+    const resArrivals = await fetch(`${API_URL}/arrivals`, { headers })
     const dataArrivals = await resArrivals.json()
     
     if (dataArrivals.status === 'success') {
@@ -133,7 +131,7 @@ const fetchData = async () => {
         cargo: (item.catches || []).map((c: any) => ({
           type: c.fish_species?.species_name || 'Unknown Fish',
           amount: `${c.weight_kg} Kg`,
-          emoji: (fishConfig[c.fish_species?.species_name] || fishConfig['default']).emoji
+          emoji: (fishConfig[c.fish_species?.species_name] || fishConfig['default'] || { emoji: '🐟', bg: 'bg-gray-50 dark:bg-gray-900/10' }).emoji
         }))
       })).filter((m: any) => m.cargo.length > 0).slice(0, 5)
     }

@@ -15,7 +15,7 @@
           <img v-if="userProfile.photo" :src="userProfile.photo" class="w-full h-full object-cover" />
           <User v-else class="w-12 h-12 text-primary-600 dark:text-primary-400" />
         </div>
-        <button @click="router.push('/edit-profile')" class="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full border-2 border-white dark:border-slate-800 shadow-lg">
+        <button @click="router.push({ name: 'EditProfile' })" class="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full border-2 border-white dark:border-slate-800 shadow-lg">
           <Camera class="w-3.5 h-3.5" />
         </button>
       </div>
@@ -32,7 +32,7 @@
         </span>
       </div>
       <button 
-        @click="router.push('/edit-profile')" 
+        @click="router.push({ name: 'EditProfile' })" 
         class="mt-4 px-6 py-2.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-xs font-bold rounded-2xl hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
       >
         Edit Profil
@@ -90,7 +90,7 @@
           <p class="text-xs opacity-70 mt-1">Pantau kedatangan & keberangkatan</p>
         </div>
       </div>
-      <button @click="router.push('/schedule')" class="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
+      <button @click="router.push({ name: 'Schedule' })" class="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
         <CalendarDays class="w-4 h-4" />
         <span>Lihat Jadwal Kapal</span>
       </button>
@@ -158,6 +158,7 @@ import {
   MapPin,
   Info
 } from 'lucide-vue-next'
+import { API_URL } from '@/config'
 
 const router = useRouter()
 const isDarkMode = ref(false)
@@ -172,7 +173,6 @@ const userProfile = ref({
 
 const fetchProfile = async () => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     if (!token) {
@@ -181,7 +181,7 @@ const fetchProfile = async () => {
       return
     }
 
-    const response = await fetch(`${baseUrl}/me`, {
+    const response = await fetch(`${API_URL}/me`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -202,6 +202,9 @@ const fetchProfile = async () => {
         }
         localStorage.setItem('userName', userProfile.value.name)
         localStorage.setItem('userRole', userProfile.value.role)
+        if (userData.id) {
+          localStorage.setItem('userId', String(userData.id))
+        }
       }
     } else if (response.status === 401) {
       handleLogout()
@@ -242,8 +245,17 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+interface MenuItem {
+  label: string
+  icon: any
+  bg: string
+  color: string
+  badge?: string
+  action: () => void
+}
+
 // Menu items for Pengelola
-const pengelolaMenuItems = [
+const pengelolaMenuItems: MenuItem[] = [
   { label: 'Informasi Armada', icon: Shield, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => {} },
   { label: 'Tanda Tangan Digital', icon: PenTool, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-600 dark:text-amber-400', badge: 'Setup', action: () => {} },
   { label: 'Notifikasi', icon: Bell, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', badge: '3', action: () => {} },
@@ -251,15 +263,15 @@ const pengelolaMenuItems = [
 ]
 
 // Menu items for Umum
-const umumMenuItems = [
-  { label: 'Jadwal Kapal', icon: CalendarDays, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => router.push('/schedule') },
-  { label: 'Komoditas Ikan', icon: Fish, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-600 dark:text-emerald-400', action: () => router.push('/commodity') },
-  { label: 'Chat Pengelola', icon: MessageCircle, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', action: () => router.push('/chat') },
+const umumMenuItems: MenuItem[] = [
+  { label: 'Jadwal Kapal', icon: CalendarDays, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => router.push({ name: 'Schedule' }) },
+  { label: 'Komoditas Ikan', icon: Fish, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-600 dark:text-emerald-400', action: () => router.push({ name: 'Commodity' }) },
+  { label: 'Chat Pengelola', icon: MessageCircle, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', action: () => router.push({ name: 'Chat' }) },
   { label: 'Notifikasi', icon: Bell, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-600 dark:text-amber-400', action: () => {} },
-  { label: 'Tentang PPN Sibolga', icon: Info, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400', action: () => router.push('/about-ppn') },
+  { label: 'Tentang PPN Sibolga', icon: Info, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400', action: () => router.push({ name: 'AboutPPN' }) },
 ]
 
-const filteredMenuItems = computed(() => {
+const filteredMenuItems = computed<MenuItem[]>(() => {
   return userProfile.value.role === 'pengelola_kapal' || userProfile.value.role === 'pengelola' ? pengelolaMenuItems : umumMenuItems
 })
 </script>

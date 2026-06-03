@@ -97,6 +97,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Anchor, MessageSquare, Users } from 'lucide-vue-next'
+import { API_URL } from '@/config'
 
 const router = useRouter()
 const activeTab = ref('Semua')
@@ -108,7 +109,6 @@ const schedules = ref<any[]>([])
 const fetchData = async () => {
   isLoading.value = true
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
     const token = localStorage.getItem('token')
     
     const headers = {
@@ -116,12 +116,10 @@ const fetchData = async () => {
       'Authorization': `Bearer ${token}`
     }
 
-    // Fetch Arrivals
-    const resArrivals = await fetch(`${baseUrl}/arrivals`, { headers })
+    const resArrivals = await fetch(`${API_URL}/arrivals`, { headers })
     const dataArrivals = await resArrivals.json()
     
-    // Fetch Departures
-    const resDepartures = await fetch(`${baseUrl}/departures`, { headers })
+    const resDepartures = await fetch(`${API_URL}/departures`, { headers })
     const dataDepartures = await resDepartures.json()
 
     const formatDateTime = (dateStr: string, timeStr: string) => {
@@ -182,6 +180,6 @@ const filteredSchedules = computed(() => {
 })
 
 const goToChat = (ship: any) => {
-  router.push('/chat')
+  router.push({ name: 'Chat' })
 }
 </script>

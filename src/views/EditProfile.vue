@@ -134,6 +134,54 @@
         </div>
       </div>
 
+      <!-- Document Upload (Pengelola Only) -->
+      <div v-if="form.role === 'pengelola'" class="space-y-5 border-t border-gray-100 dark:border-slate-800 pt-6">
+        <h3 class="text-sm font-bold text-gray-800 dark:text-white mb-1">Dokumen Pengelola</h3>
+        <p class="text-[10px] text-gray-400">Harap unggah dokumen KTP dan Surat Kuasa untuk memverifikasi akun Anda.</p>
+        
+        <!-- KTP -->
+        <div>
+          <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Dokumen KTP (PDF, JPG, PNG)</label>
+          <div class="flex items-center space-x-4">
+            <div class="flex-grow">
+              <label class="flex flex-col items-center justify-center border border-dashed border-gray-200 dark:border-slate-700 rounded-2xl p-4 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800/80 transition-colors">
+                <FileText class="w-6 h-6 text-gray-400 mb-1" />
+                <span class="text-xs text-gray-600 dark:text-gray-300 font-medium truncate max-w-[200px]">
+                  {{ ktpFileName || (ktpPreview ? 'Ubah File KTP' : 'Pilih File KTP') }}
+                </span>
+                <input type="file" accept=".pdf,image/jpeg,image/png,image/jpg" @change="onKtpChange" class="hidden" />
+              </label>
+            </div>
+            <a v-if="ktpPreview" :href="ktpPreview" target="_blank" class="p-3 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl text-xs font-bold flex items-center space-x-1">
+              <Download class="w-4 h-4" />
+              <span>Lihat KTP</span>
+            </a>
+          </div>
+          <p v-if="errors.ktp_file" class="text-xs text-red-500 mt-1">{{ errors.ktp_file }}</p>
+        </div>
+
+        <!-- Surat Kuasa -->
+        <div>
+          <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Dokumen Surat Kuasa (PDF, JPG, PNG)</label>
+          <div class="flex items-center space-x-4">
+            <div class="flex-grow">
+              <label class="flex flex-col items-center justify-center border border-dashed border-gray-200 dark:border-slate-700 rounded-2xl p-4 bg-gray-50 dark:bg-slate-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800/80 transition-colors">
+                <FileText class="w-6 h-6 text-gray-400 mb-1" />
+                <span class="text-xs text-gray-600 dark:text-gray-300 font-medium truncate max-w-[200px]">
+                  {{ suratKuasaFileName || (suratKuasaPreview ? 'Ubah Surat Kuasa' : 'Pilih Surat Kuasa') }}
+                </span>
+                <input type="file" accept=".pdf,image/jpeg,image/png,image/jpg" @change="onSuratKuasaChange" class="hidden" />
+              </label>
+            </div>
+            <a v-if="suratKuasaPreview" :href="suratKuasaPreview" target="_blank" class="p-3 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl text-xs font-bold flex items-center space-x-1">
+              <Download class="w-4 h-4" />
+              <span>Lihat Surat Kuasa</span>
+            </a>
+          </div>
+          <p v-if="errors.surat_kuasa_file" class="text-xs text-red-500 mt-1">{{ errors.surat_kuasa_file }}</p>
+        </div>
+      </div>
+
       <!-- Messages -->
       <div v-if="successMessage" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 flex items-center space-x-3">
         <CheckCircle2 class="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -231,7 +279,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Camera, Mail, Phone, Shield, ArrowLeft, CheckCircle2, AlertCircle, Lock, MapPin } from 'lucide-vue-next'
+import { User, Camera, Mail, Phone, Shield, ArrowLeft, CheckCircle2, AlertCircle, Lock, MapPin, FileText, Download } from 'lucide-vue-next'
+import { API_URL } from '@/config'
 
 const router = useRouter()
 const activeTab = ref('profile')
@@ -243,6 +292,30 @@ const errorMessage = ref('')
 const errors = ref<Record<string, string>>({})
 const photoFile = ref<File | null>(null)
 const photoPreview = ref('')
+
+const ktpFile = ref<File | null>(null)
+const ktpFileName = ref('')
+const ktpPreview = ref('')
+
+const suratKuasaFile = ref<File | null>(null)
+const suratKuasaFileName = ref('')
+const suratKuasaPreview = ref('')
+
+const onKtpChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    ktpFile.value = target.files[0]
+    ktpFileName.value = target.files[0].name
+  }
+}
+
+const onSuratKuasaChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    suratKuasaFile.value = target.files[0]
+    suratKuasaFileName.value = target.files[0].name
+  }
+}
 
 const form = ref({
   name: '',
@@ -280,11 +353,10 @@ const onPhotoChange = (e: Event) => {
 
 const fetchProfile = async () => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL
     const token = localStorage.getItem('token')
     if (!token) return
 
-    const response = await fetch(`${baseUrl}/me`, {
+    const response = await fetch(`${API_URL}/me`, {
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -304,6 +376,15 @@ const fetchProfile = async () => {
       if (user.photo) {
         photoPreview.value = user.photo
       }
+      if (user.id_card) {
+        ktpPreview.value = user.id_card
+      }
+      if (user.authorization_letter) {
+        suratKuasaPreview.value = user.authorization_letter
+      }
+      if (user.id) {
+        localStorage.setItem('userId', String(user.id))
+      }
     }
   } catch (error) {
     console.error('Gagal mengambil data profile:', error)
@@ -317,7 +398,6 @@ const handleSaveProfile = async () => {
   errors.value = {}
 
   try {
-    const baseUrl = import.meta.env.VITE_API_URL
     const token = localStorage.getItem('token')
 
     // Use FormData for multipart/form-data (supports file upload)
@@ -327,8 +407,10 @@ const handleSaveProfile = async () => {
     if (form.value.phone) formData.append('phone', form.value.phone)
     if (form.value.address) formData.append('address', form.value.address)
     if (photoFile.value) formData.append('photo', photoFile.value)
+    if (ktpFile.value) formData.append('ktp_file', ktpFile.value)
+    if (suratKuasaFile.value) formData.append('surat_kuasa_file', suratKuasaFile.value)
 
-    const response = await fetch(`${baseUrl}/profile/update`, {
+    const response = await fetch(`${API_URL}/profile/update`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -353,6 +435,9 @@ const handleSaveProfile = async () => {
 
     localStorage.setItem('userName', form.value.name)
     successMessage.value = data.message || 'Profil berhasil diperbarui!'
+    ktpFileName.value = ''
+    suratKuasaFileName.value = ''
+    await fetchProfile()
 
   } catch (err: any) {
     errorMessage.value = err.message || 'Koneksi ke server gagal.'
@@ -375,10 +460,9 @@ const handleChangePassword = async () => {
   }
 
   try {
-    const baseUrl = import.meta.env.VITE_API_URL
     const token = localStorage.getItem('token')
 
-    const response = await fetch(`${baseUrl}/profile/change-password`, {
+    const response = await fetch(`${API_URL}/profile/change-password`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
