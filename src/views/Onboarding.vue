@@ -77,7 +77,7 @@ const currentSlide = ref(0)
 const slides = [
   {
     title: 'Selamat Datang di SAMOSIR',
-    description: 'Aplikasi monitoring dan operasional Kepulauan Samosir yang membantu Anda dalam aktivitas sehari-hari.',
+    description: 'Aplikasi monitoring dan operasional Pelabuhan Perikanan Nusantara Sibolga yang membantu Anda dalam aktivitas sehari-hari.',
     icon: `<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="40" cy="40" r="35" fill="url(#icon1)" opacity="0.2"/>
       <path d="M40 15L50 35H30L40 15Z" fill="#0ea5e9"/>
@@ -110,8 +110,8 @@ const slides = [
     </svg>`
   },
   {
-    title: 'Komoditas & Produk Lokal',
-    description: 'Jelajahi berbagai komoditas dan produk lokal dari Pulau Samosir. Dukung ekonomi lokal dengan mudah.',
+    title: 'Informasi Komoditas',
+    description: 'Informasi mengenai komoditas hasil tangkapan nelayan dan harga di PPN Sibolga.',
     icon: `<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="40" cy="40" r="35" fill="url(#icon3)" opacity="0.2"/>
       <path d="M25 55L40 20L55 55H25Z" fill="#6366f1"/>

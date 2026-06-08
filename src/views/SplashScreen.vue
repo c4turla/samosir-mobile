@@ -4,8 +4,8 @@
       <div class="splash-logo-container">
         <img src="/logobaru.webp" alt="SAMOSIR Logo" class="splash-logo" />
       </div>
-      <h1 class="splash-title">SAMOSIR</h1>
-      <p class="splash-subtitle">Sistem Aplikasi Monitoring & Operasional Samosir</p>
+      <h1 class="splash-title">SAMOSIR <span class="text-sm">V.3.0</span></h1>
+      <p class="splash-subtitle">Sistem Aplikasi Monitoring & Operasional PPN Sibolga</p>
       <div class="splash-loader">
         <div class="splash-loader-dot"></div>
         <div class="splash-loader-dot"></div>

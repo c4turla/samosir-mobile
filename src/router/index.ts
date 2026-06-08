@@ -67,6 +67,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/Profile.vue')
       },
       {
+        path: 'profile/signature',
+        name: 'SetupSignature',
+        component: () => import('../views/SetupSignature.vue')
+      },
+      {
         path: 'commodity',
         name: 'Commodity',
         component: () => import('../views/Commodity.vue')
@@ -80,6 +85,41 @@ const routes: RouteRecordRaw[] = [
         path: 'about-ppn',
         name: 'AboutPPN',
         component: () => import('../views/AboutPPN.vue')
+      },
+      {
+        path: 'manage-vessels',
+        name: 'ManageVessels',
+        component: () => import('../views/ManageVessels.vue')
+      },
+      {
+        path: 'report/arrival',
+        name: 'CreateArrival',
+        component: () => import('../views/CreateArrival.vue')
+      },
+      {
+        path: 'report/departure',
+        name: 'CreateDeparture',
+        component: () => import('../views/CreateDeparture.vue')
+      },
+      {
+        path: 'report/service',
+        name: 'CreateService',
+        component: () => import('../views/CreateService.vue')
+      },
+      {
+        path: 'report/spr',
+        name: 'CreateSprDeparture',
+        component: () => import('../views/CreateSprDeparture.vue')
+      },
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('../views/Notifications.vue')
+      },
+      {
+        path: 'profile/support',
+        name: 'Support',
+        component: () => import('../views/Support.vue')
       }
     ]
   }

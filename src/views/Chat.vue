@@ -32,13 +32,7 @@
           @click="selectConversationFromList(conversation)"
         >
           <div class="relative flex-shrink-0">
-            <img
-              v-if="conversation.photo"
-              :src="conversation.photo"
-              :alt="conversation.name"
-              class="w-16 h-16 rounded-3xl object-cover shadow-lg"
-            />
-            <div v-else :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', conversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
+            <div :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', conversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
               {{ conversation.initials }}
             </div>
             <div v-if="conversation.online" class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-3 border-white dark:border-slate-950 shadow-sm"></div>
@@ -89,13 +83,7 @@
           @click="selectConversation(contact)"
         >
           <div class="relative flex-shrink-0">
-            <img
-              v-if="contact.photo"
-              :src="contact.photo"
-              :alt="contact.name"
-              class="w-16 h-16 rounded-3xl object-cover shadow-lg"
-            />
-            <div v-else :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', contact.color || getColorForContact(contact), 'bg-gradient-to-br shadow-gray-300 dark:shadow-gray-900/50']">
+            <div :class="['w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-white shadow-lg', contact.color || getColorForContact(contact), 'bg-gradient-to-br shadow-gray-300 dark:shadow-gray-900/50']">
               {{ contact.initials }}
             </div>
             <div v-if="contact.online" class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-3 border-white dark:border-slate-950 shadow-sm"></div>
@@ -144,13 +132,7 @@
           </svg>
         </button>
         <div class="relative">
-          <img
-            v-if="selectedConversation.photo"
-            :src="selectedConversation.photo"
-            :alt="selectedConversation.name"
-            class="w-12 h-12 rounded-2xl object-cover shadow-lg"
-          />
-          <div v-else :class="['w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white shadow-lg', selectedConversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
+          <div :class="['w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white shadow-lg', selectedConversation.color, 'bg-gradient-to-br shadow-primary-200 dark:shadow-primary-900/50']">
             {{ selectedConversation.initials }}
           </div>
           <div v-if="selectedConversation.online" class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-3 border-white dark:border-slate-800 shadow-sm"></div>
@@ -241,13 +223,7 @@
         <div v-else class="max-w-[75%] space-y-1">
           <div class="flex items-end space-x-3">
             <div class="relative flex-shrink-0">
-              <img
-                v-if="selectedConversation.photo"
-                :src="selectedConversation.photo"
-                :alt="selectedConversation.name"
-                class="w-8 h-8 rounded-xl object-cover"
-              />
-              <div v-else :class="['w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white text-xs', selectedConversation.color, 'bg-gradient-to-br']">
+              <div :class="['w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white text-xs', selectedConversation.color, 'bg-gradient-to-br']">
                 {{ selectedConversation.initials }}
               </div>
             </div>
@@ -450,7 +426,20 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
-import { API_URL, REVERB_APP_KEY, REVERB_HOST, REVERB_PORT } from '@/config'
+import { API_URL, REVERB_APP_KEY, REVERB_HOST, REVERB_PORT, REVERB_SCHEME } from '@/config'
+
+const isValidPhoto = (photo: string | null | undefined): boolean => {
+  if (!photo) return false
+  const trimmed = photo.trim()
+  return (
+    trimmed !== '' &&
+    trimmed !== '/' &&
+    !trimmed.endsWith('/storage') &&
+    !trimmed.endsWith('/storage/') &&
+    !trimmed.endsWith('/null') &&
+    !trimmed.endsWith('/undefined')
+  )
+}
 
 // Configure Laravel Echo for real-time communication
 declare global {
@@ -472,19 +461,20 @@ const initEcho = async () => {
       return
     }
 
+    // This custom handler in api/v1/broadcasting/auth uses auth:sanctum and
+    // generates valid Pusher-protocol auth signatures for Bearer-token clients.
     const authUrl = `${API_URL}/broadcasting/auth`
 
+    const useTLS = REVERB_SCHEME === 'https' || Number(REVERB_PORT) === 443
+
     echo = new Echo({
-      broadcaster: 'pusher',
+      broadcaster: 'reverb',
       key: REVERB_APP_KEY,
-      cluster: '',
       wsHost: REVERB_HOST,
-      wsPort: Number(REVERB_PORT),
-      wssPort: Number(REVERB_PORT),
-      forceTLS: false,
-      encrypted: false,
-      disableStats: true,
-      enabledTransports: ['ws', 'wss'],
+      wsPort: useTLS ? 443 : Number(REVERB_PORT),
+      wssPort: useTLS ? 443 : Number(REVERB_PORT),
+      forceTLS: useTLS,
+      enabledTransports: useTLS ? ['wss'] : ['ws'],
       authEndpoint: authUrl,
       auth: {
         headers: {
@@ -540,6 +530,23 @@ let isWebSocketEnabled = true
 let pollingIntervals: ReturnType<typeof setInterval>[] = []
 let isMounted = false
 
+const onlineUserIds = ref(new Set<number>())
+
+const updateOnlineStatus = () => {
+  contacts.value.forEach(c => {
+    c.online = onlineUserIds.value.has(Number(c.id))
+  })
+  conversations.value.forEach(c => {
+    const participantId = c.participant?.id || c.id
+    c.online = onlineUserIds.value.has(Number(participantId))
+  })
+  if (selectedConversation.value) {
+    const participantId = selectedConversation.value.participant?.id || selectedConversation.value.id
+    selectedConversation.value.online = onlineUserIds.value.has(Number(participantId))
+  }
+}
+
+
 // Role to category mapping
 const roleToCategory = (role: string): string => {
   const mapping: Record<string, string> = {
@@ -549,7 +556,7 @@ const roleToCategory = (role: string): string => {
     'syahbandar': 'Syahbandar',
     'umum': 'Umum',
   }
-  return mapping[role?.toLowerCase()] || 'Klien'
+  return mapping[role?.toLowerCase()] || 'Lainnya'
 }
 
 // Role label for display
@@ -568,7 +575,7 @@ const roleLabel = (role: string): string => {
 const categories = computed(() => {
   return userRole.value === 'umum'
     ? ['Semua', 'Petugas', 'Pengelola']
-    : ['Semua', 'Petugas', 'Klien']
+    : ['Semua', 'Petugas', 'Umum']
 })
 
 const filteredContacts = computed(() => {
@@ -629,6 +636,7 @@ const fetchContacts = async () => {
           online: false,
           color: getColorForId(contact.id)
         }))
+        updateOnlineStatus()
       }
     }
   } catch (error) {
@@ -671,6 +679,7 @@ const fetchConversations = async () => {
           read_at: conv.read_at,
           last_message_at: conv.last_message_at
         }))
+        updateOnlineStatus()
       }
     }
   } catch (error) {
@@ -1122,10 +1131,10 @@ const setupRealTimeForConversation = (conversationId: number) => {
   try {
     // Leave previous conversation channel
     if (echoChannel) {
-      echoChannel.stopListening('.MessageSent')
-      echoChannel.stopListening('.MessageUpdated')
-      echoChannel.stopListening('.MessageDeleted')
-      echo.leaveChannel(`private-chat.${echoChannel.conversationId}`)
+      echoChannel.stopListening('.message.sent')
+      echoChannel.stopListening('.message.updated')
+      echoChannel.stopListening('.message.deleted')
+      echo.leave(`chat.${echoChannel.conversationId}`)
       echoChannel = null
     }
 
@@ -1134,32 +1143,35 @@ const setupRealTimeForConversation = (conversationId: number) => {
     echoChannel.conversationId = conversationId
 
     echoChannel
-      .listen('.MessageSent', (event: any) => {
-        console.log('Real-time: MessageSent', event)
+      .listen('.message.sent', (event: any) => {
+        console.log('Real-time: message.sent', event)
         const msg = event.message || event
-        // Add new message if it's not from current user (our own messages are added when sending)
-        if (msg.sender_id !== userId.value) {
-          messages.value.push({
-            id: msg.id,
-            conversation_id: msg.conversation_id,
-            body: msg.body,
-            sender_id: msg.sender_id,
-            type: msg.type,
-            file_url: msg.file_url,
-            file_name: msg.file_name,
-            file_type: msg.file_type,
-            file_full_url: msg.file_full_url,
-            is_edited: msg.is_edited || false,
-            is_deleted: msg.is_deleted || false,
-            created_at: msg.created_at,
-            sender: msg.sender || event.sender
-          })
-          scrollToBottom()
+        // Add new message if it's not from current user and not a duplicate
+        if (msg.sender_id !== userId.value && msg.id) {
+          const alreadyExists = messages.value.some((m: any) => m.id === msg.id)
+          if (!alreadyExists) {
+            messages.value.push({
+              id: msg.id,
+              conversation_id: msg.conversation_id,
+              body: msg.body,
+              sender_id: msg.sender_id,
+              type: msg.type,
+              file_url: msg.file_url,
+              file_name: msg.file_name,
+              file_type: msg.file_type,
+              file_full_url: msg.file_full_url,
+              is_edited: msg.is_edited || false,
+              is_deleted: msg.is_deleted || false,
+              created_at: msg.created_at,
+              sender: msg.sender || event.sender
+            })
+            scrollToBottom()
+          }
         }
         fetchConversations()
       })
-      .listen('.MessageUpdated', (event: any) => {
-        console.log('Real-time: MessageUpdated', event)
+      .listen('.message.updated', (event: any) => {
+        console.log('Real-time: message.updated', event)
         const msg = event.message || event
         const idx = messages.value.findIndex((m: any) => m.id === msg.id)
         if (idx !== -1) {
@@ -1170,8 +1182,8 @@ const setupRealTimeForConversation = (conversationId: number) => {
           }
         }
       })
-      .listen('.MessageDeleted', (event: any) => {
-        console.log('Real-time: MessageDeleted', event)
+      .listen('.message.deleted', (event: any) => {
+        console.log('Real-time: message.deleted', event)
         const msg = event.message || event
         const idx = messages.value.findIndex((m: any) => m.id === msg.id)
         if (idx !== -1) {
@@ -1219,16 +1231,46 @@ const startRealTimeUpdates = async () => {
     // Setup user-specific channel for new message notifications
     privateChannel = echo.private(`App.Models.User.${userId.value}`)
     privateChannel
-      .listen('.MessageSent', (event: any) => {
+      .listen('.message.sent', (event: any) => {
         if (!isMounted) return
         console.log('User channel: New message notification', event)
         // Refresh conversations list
         fetchConversations()
+        // Also re-fetch messages if we're currently in a conversation
+        // This ensures web-sent messages appear immediately on mobile
+        if (selectedConversation.value?.conversationId) {
+          const incomingConvId = event.message?.conversation_id
+          if (!incomingConvId || incomingConvId === selectedConversation.value.conversationId) {
+            fetchMessages(selectedConversation.value.conversationId, false)
+          }
+        }
       })
       .error((error: any) => {
         console.error('WebSocket user channel error:', error)
         isWebSocketEnabled = false
         startPollingFallback()
+      })
+
+    // Setup presence channel to track online status
+    echo.join('chat-presence')
+      .here((users: any[]) => {
+        console.log('Online users here:', users)
+        const ids = users.map(u => Number(u.id))
+        onlineUserIds.value = new Set(ids)
+        updateOnlineStatus()
+      })
+      .joining((user: any) => {
+        console.log('User joined:', user)
+        onlineUserIds.value.add(Number(user.id))
+        updateOnlineStatus()
+      })
+      .leaving((user: any) => {
+        console.log('User left:', user)
+        onlineUserIds.value.delete(Number(user.id))
+        updateOnlineStatus()
+      })
+      .error((error: any) => {
+        console.error('WebSocket presence channel error:', error)
       })
   } catch (error) {
     console.error('Failed to setup WebSocket:', error)
@@ -1275,22 +1317,26 @@ const stopPollingFallback = () => {
 const stopRealTimeUpdates = () => {
   if (isWebSocketEnabled && echo) {
     if (echoChannel) {
-      echoChannel.stopListening('.MessageSent')
-      echoChannel.stopListening('.MessageUpdated')
-      echoChannel.stopListening('.MessageDeleted')
+      echoChannel.stopListening('.message.sent')
+      echoChannel.stopListening('.message.updated')
+      echoChannel.stopListening('.message.deleted')
       try {
-        echo.leaveChannel(`private-chat.${echoChannel.conversationId}`)
+        echo.leave(`chat.${echoChannel.conversationId}`)
       } catch (e) { /* ignore */ }
       echoChannel = null
     }
 
     if (privateChannel) {
-      privateChannel.stopListening('.MessageSent')
+      privateChannel.stopListening('.message.sent')
       try {
-        echo.leaveChannel(`private-App.Models.User.${userId.value}`)
+        echo.leave(`App.Models.User.${userId.value}`)
       } catch (e) { /* ignore */ }
       privateChannel = null
     }
+
+    try {
+      echo.leave('chat-presence')
+    } catch (e) { /* ignore */ }
   }
   stopPollingFallback()
 }

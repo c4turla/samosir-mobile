@@ -28,6 +28,14 @@
             <p class="text-xs font-bold">{{ vessel.name }}</p>
           </div>
         </button>
+        <!-- Add a mini "+ Kelola" button in the switcher list -->
+        <button 
+          @click="goToProfileToManage"
+          class="flex-shrink-0 px-4 py-3 rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 bg-transparent text-gray-500 dark:text-gray-400 flex items-center space-x-2 active:scale-95 transition-all"
+        >
+          <Plus class="w-4 h-4" />
+          <span class="text-xs font-bold">Kelola</span>
+        </button>
       </div>
 
       <!-- Alert Melengkapi Dokumen (Pengelola Only) -->
@@ -91,20 +99,41 @@
           <router-link :to="{ name: 'Schedule' }" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Lihat Semua</router-link>
         </div>
         <div class="space-y-3">
-          <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+          <div v-if="latestActivity" class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
             <div class="flex items-center space-x-3">
               <div class="p-2 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20">
                 <CheckCircle2 class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">{{ currentVessel.type }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ currentVessel.time }} • {{ currentVessel.dock }}</p>
+                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">{{ latestActivity.type }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ latestActivity.time }} • {{ latestActivity.dock }}</p>
               </div>
             </div>
             <ChevronRight class="w-5 h-5 text-gray-300 dark:text-gray-600" />
           </div>
+          <div v-else class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 text-center text-xs text-gray-400 shadow-sm">
+            Belum ada riwayat kedatangan/keberangkatan untuk kapal ini.
+          </div>
         </div>
       </section>
+    </div>
+
+    <!-- Empty State for Manager (When no vessels are managed) -->
+    <div v-else-if="userRole === 'pengelola' && managedVessels.length === 0 && !isLoading" class="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[2rem] p-8 text-center animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-sm">
+      <div class="w-16 h-16 bg-slate-50 dark:bg-slate-850 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Anchor class="w-8 h-8 text-gray-400 dark:text-gray-500" />
+      </div>
+      <h3 class="text-sm font-bold text-gray-900 dark:text-white">Belum Ada Kapal Kelolaan</h3>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 max-w-[280px] mx-auto leading-relaxed">
+        Anda belum terdaftar sebagai pengelola untuk kapal apa pun. Silakan daftarkan kapal Anda agar dapat mengelola data logbook dan aktivitas pelaporan.
+      </p>
+      <button 
+        @click="goToProfileToManage"
+        class="mt-6 w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-primary-200 dark:shadow-none transition-all flex items-center justify-center space-x-1.5 active:scale-95"
+      >
+        <Plus class="w-4 h-4" />
+        <span>Kelola Kapal</span>
+      </button>
     </div>
 
     <!-- Loading state for manager -->
@@ -162,29 +191,40 @@
       </section>
     </div>
 
-    <!-- Commodity Spill (Pengelola) -->
+    <!-- Recent Activities (Pengelola) -->
     <section v-if="userRole === 'pengelola'" class="animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Aktivitas Terbaru</h3>
-        <router-link :to="{ name: 'Schedule' }" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Logbook</router-link>
+        <router-link :to="{ name: 'Report' }" class="text-primary-600 dark:text-primary-400 text-sm font-semibold">Logbook</router-link>
       </div>
-      <div v-if="latestActivity" class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center">
-            <TrendingUp class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+      
+      <div v-if="recentActivities.length > 0" class="space-y-3">
+        <div 
+          v-for="activity in recentActivities" 
+          :key="activity.id" 
+          class="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center justify-between transition-all active:scale-[0.99]"
+        >
+          <div class="flex items-center space-x-3">
+            <div :class="['w-10 h-10 rounded-2xl flex items-center justify-center', activity.iconBg]">
+              <component :is="activity.icon" :class="['w-5 h-5', activity.iconColor]" />
+            </div>
+            <div>
+              <p class="text-sm font-bold text-gray-800 dark:text-white leading-tight">
+                {{ activity.title }}
+              </p>
+              <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                {{ activity.subtitle }} • {{ activity.time }}
+              </p>
+            </div>
           </div>
-          <div>
-            <p class="text-sm font-bold text-gray-800 dark:text-white">{{ latestActivity.name }}</p>
-            <p class="text-[10px] text-gray-500">{{ latestActivity.type }} • {{ latestActivity.time }}</p>
-          </div>
+          <span :class="['px-2.5 py-1 rounded-xl text-[9px] font-bold uppercase', activity.statusClass]">
+            {{ activity.statusLabel }}
+          </span>
         </div>
-        <span :class="[
-          'text-xs font-bold',
-          latestActivity.type === 'Kedatangan' ? 'text-emerald-600' : 'text-blue-600'
-        ]">{{ latestActivity.type === 'Kedatangan' ? '📥' : '📤' }}</span>
       </div>
+      
       <div v-else class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm text-center">
-        <p class="text-xs text-gray-400">Belum ada aktivitas terbaru</p>
+        <p class="text-xs text-gray-400">Belum ada aktivitas terbaru untuk kapal ini</p>
       </div>
     </section>
 
@@ -268,7 +308,6 @@ import {
   Clock, 
   FileCheck, 
   CheckCircle2, 
-  AlertCircle, 
   ChevronRight,
   CloudLightning,
   Anchor,
@@ -285,7 +324,14 @@ import {
   TrendingUp,
   Newspaper,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Droplet,
+  Snowflake,
+  Wrench,
+  LogIn, 
+  LogOut, 
+  AlertCircle,
+  Compass
 } from 'lucide-vue-next'
 import { API_URL } from '@/config'
 
@@ -302,6 +348,7 @@ const publicShips = ref<any[]>([])
 const managedVessels = ref<any[]>([])
 const latestActivity = ref<any>(null)
 const fishPrices = ref<any[]>([])
+const allActivities = ref<any[]>([])
 
 const formatDateTime = (dateStr: string, timeStr: string) => {
   if (!dateStr) return '-'
@@ -317,6 +364,10 @@ const formatDateTime = (dateStr: string, timeStr: string) => {
   } catch (e) {
     return `${dateStr} ${timeStr || ''}`.trim()
   }
+}
+
+const goToProfileToManage = () => {
+  router.push({ name: 'ManageVessels' })
 }
 
 const fetchDashboardData = async () => {
@@ -355,58 +406,251 @@ const fetchDashboardData = async () => {
       }
     }
 
-    const resArrivals = await fetch(`${API_URL}/arrivals`, { headers })
-    const dataArrivals = await resArrivals.json()
-    
-    const resDepartures = await fetch(`${API_URL}/departures`, { headers })
-    const dataDepartures = await resDepartures.json()
+    let arrivalsList: any[] = []
+    let departuresList: any[] = []
 
-    const arrivalsList = (dataArrivals.data?.data || []).map((item: any) => ({
-      id: `arr-${item.id}`,
-      name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
-      dock: item.landing_site?.site_name || '-',
-      type: 'Kedatangan',
-      time: formatDateTime(item.arrival_date, item.arrival_time),
-      fishingGear: item.vessel?.fishing_gear || '-',
-      gt: item.vessel?.gt || 0,
-      vesselId: item.vessel_id
-    }))
+    if (userRole.value === 'pengelola') {
+      // Use the separate endpoints for managers to automatically filter by their managed vessels
+      const resArrivals = await fetch(`${API_URL}/arrivals`, { headers })
+      const dataArrivals = await resArrivals.json()
+      
+      const resDepartures = await fetch(`${API_URL}/departures`, { headers })
+      const dataDepartures = await resDepartures.json()
 
-    const departuresList = (dataDepartures.data?.data || []).map((item: any) => ({
-      id: `dep-${item.id}`,
-      name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
-      dock: item.landing_site?.site_name || '-',
-      type: 'Keberangkatan',
-      time: formatDateTime(item.departure_date, item.departure_time),
-      fishingGear: item.vessel?.fishing_gear || '-',
-      gt: item.vessel?.gt || 0,
-      vesselId: item.vessel_id
-    }))
+      let waterServices: any[] = []
+      let equipmentServices: any[] = []
+      let sprDepartures: any[] = []
+
+      try {
+        const resServices = await fetch(`${API_URL}/services`, { headers })
+        if (resServices.ok) {
+          const jsonServices = await resServices.json()
+          const dataS = jsonServices.data || {}
+          waterServices = dataS.water || []
+          equipmentServices = dataS.equipment || []
+        }
+      } catch (err) {
+        console.error('Gagal mengambil data jasa:', err)
+      }
+
+      try {
+        const resSpr = await fetch(`${API_URL}/spr-departures`, { headers })
+        if (resSpr.ok) {
+          const jsonSpr = await resSpr.json()
+          sprDepartures = jsonSpr.data?.data || []
+        }
+      } catch (err) {
+        console.error('Gagal mengambil data SPR:', err)
+      }
+
+      const arrMapped = (dataArrivals.data?.data || []).map((item: any) => ({
+        id: `arr-${item.id}`,
+        vesselId: item.vessel_id,
+        title: 'E-Arrival',
+        subtitle: `Dermaga: ${item.landing_site?.site_name || '-'}`,
+        time: formatDateTime(item.arrival_date, item.arrival_time),
+        rawDate: item.created_at || item.arrival_date,
+        type: 'Kedatangan',
+        icon: LogIn,
+        iconBg: 'bg-emerald-50 dark:bg-emerald-950/20',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
+        statusLabel: item.approval_status === 1 ? 'Approved' : (item.approval_status === 2 ? 'Rejected' : 'Pending'),
+        statusClass: item.approval_status === 1 
+          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400' 
+          : (item.approval_status === 2 ? 'bg-red-50 text-red-600 dark:bg-red-955/20 dark:text-red-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400')
+      }))
+
+      const depMapped = (dataDepartures.data?.data || []).map((item: any) => ({
+        id: `dep-${item.id}`,
+        vesselId: item.vessel_id,
+        title: 'E-Departure',
+        subtitle: `Tujuan: ${item.destination || '-'}`,
+        time: formatDateTime(item.departure_date, item.departure_time),
+        rawDate: item.created_at || item.departure_date,
+        type: 'Keberangkatan',
+        icon: LogOut,
+        iconBg: 'bg-blue-50 dark:bg-blue-950/20',
+        iconColor: 'text-blue-600 dark:text-blue-400',
+        statusLabel: item.approval_status === 1 ? 'Approved' : (item.approval_status === 2 ? 'Rejected' : 'Pending'),
+        statusClass: item.approval_status === 1 
+          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400' 
+          : (item.approval_status === 2 ? 'bg-red-50 text-red-600 dark:bg-red-955/20 dark:text-red-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400')
+      }))
+
+      const matchStatus = (status: string) => {
+        if (status === 'order') return 'Pending'
+        if (status === 'processed') return 'Diproses'
+        if (status === 'completed') return 'Approved'
+        if (status === 'cancelled') return 'Cancelled'
+        return status
+      }
+      const getServiceStatusClass = (status: string) => {
+        if (status === 'order') return 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400'
+        if (status === 'processed') return 'bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400'
+        if (status === 'completed') return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400'
+        if (status === 'cancelled') return 'bg-red-50 text-red-600 dark:bg-red-955/20 dark:text-red-400'
+        return 'bg-gray-50 text-gray-600 dark:bg-gray-955/20 dark:text-gray-400'
+      }
+
+      const waterMapped = waterServices.map((item: any) => ({
+        id: `wtr-${item.id}`,
+        vesselId: item.vessel_id,
+        title: 'Jasa Air Tawar',
+        subtitle: `Volume: ${item.volume} M3`,
+        time: formatDateTime(item.request_date, ''),
+        rawDate: item.created_at || item.request_date,
+        type: 'Jasa Air',
+        icon: Droplet,
+        iconBg: 'bg-sky-50 dark:bg-sky-950/20',
+        iconColor: 'text-sky-600 dark:text-sky-400',
+        statusLabel: matchStatus(item.status),
+        statusClass: getServiceStatusClass(item.status)
+      }))
+
+      const eqMapped = equipmentServices.map((item: any) => {
+        const isIce = item.items && item.items.some((x: any) => x.equipment_name === 'ice_cruiser')
+        const itemsCount = item.items ? item.items.length : 0
+        return {
+          id: `eq-${item.id}`,
+          vesselId: item.vessel_id,
+          title: isIce ? 'Layanan Ice Cruiser' : 'Jasa Sewa Alat',
+          subtitle: isIce ? 'Penggilingan Es' : `${itemsCount} Item Peralatan`,
+          time: formatDateTime(item.service_date, item.start_time || ''),
+          rawDate: item.created_at || item.service_date,
+          type: isIce ? 'Ice Cruiser' : 'Jasa Alat',
+          icon: isIce ? Snowflake : Wrench,
+          iconBg: isIce ? 'bg-teal-50 dark:bg-teal-950/20' : 'bg-purple-50 dark:bg-purple-950/20',
+          iconColor: isIce ? 'text-teal-600 dark:text-teal-400' : 'text-purple-600 dark:text-purple-400',
+          statusLabel: matchStatus(item.status),
+          statusClass: getServiceStatusClass(item.status)
+        }
+      })
+
+      const sprMapped = sprDepartures.map((item: any) => ({
+        id: `spr-${item.id}`,
+        vesselId: item.vessel_id,
+        title: 'Permohonan SPR',
+        subtitle: `Nakhoda: ${item.nakhoda_name || '-'}`,
+        time: formatDateTime(item.planned_departure_datetime, ''),
+        rawDate: item.created_at || item.planned_departure_datetime,
+        type: 'SPR Keberangkatan',
+        icon: Compass,
+        iconBg: 'bg-amber-50 dark:bg-amber-955/20',
+        iconColor: 'text-amber-600 dark:text-amber-400',
+        statusLabel: item.status === 'approved' ? 'Approved' : (item.status === 'rejected' ? 'Rejected' : (item.status === 'processed' ? 'Diproses' : 'Pending')),
+        statusClass: item.status === 'approved' 
+          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400' 
+          : (item.status === 'rejected' ? 'bg-red-50 text-red-650 dark:bg-red-955/20 dark:text-red-400' : (item.status === 'processed' ? 'bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400'))
+      }))
+
+      const combinedActivities = [
+        ...arrMapped,
+        ...depMapped,
+        ...waterMapped,
+        ...eqMapped,
+        ...sprMapped
+      ]
+      combinedActivities.sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime())
+      allActivities.value = combinedActivities
+
+      arrivalsList = (dataArrivals.data?.data || []).map((item: any) => ({
+        id: `arr-${item.id}`,
+        name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+        dock: item.landing_site?.site_name || '-',
+        type: 'Kedatangan',
+        time: formatDateTime(item.arrival_date, item.arrival_time),
+        fishingGear: item.vessel?.fishing_gear || '-',
+        gt: item.vessel?.gt || 0,
+        vesselId: item.vessel_id
+      }))
+
+      departuresList = (dataDepartures.data?.data || []).map((item: any) => ({
+        id: `dep-${item.id}`,
+        name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+        dock: item.landing_site?.site_name || '-',
+        type: 'Keberangkatan',
+        time: formatDateTime(item.departure_date, item.departure_time),
+        fishingGear: item.vessel?.fishing_gear || '-',
+        gt: item.vessel?.gt || 0,
+        vesselId: item.vessel_id
+      }))
+    } else {
+      // General/public users call schedules endpoint
+      const resSchedules = await fetch(`${API_URL}/schedules?type=all&per_page=15`, { headers })
+      const dataSchedules = await resSchedules.json()
+      
+      if (dataSchedules.status === 'success') {
+        const payload = dataSchedules.data
+        const arrData = payload.arrivals?.data || []
+        const depData = payload.departures?.data || []
+        
+        arrivalsList = arrData.map((item: any) => ({
+          id: `arr-${item.id}`,
+          name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+          dock: item.landing_site?.site_name || '-',
+          type: 'Kedatangan',
+          time: formatDateTime(item.arrival_date, item.arrival_time),
+          fishingGear: item.vessel?.fishing_gear || '-',
+          gt: item.vessel?.gt || 0,
+          vesselId: item.vessel_id
+        }))
+
+        departuresList = depData.map((item: any) => ({
+          id: `dep-${item.id}`,
+          name: item.vessel?.vessel_name || 'Kapal Tidak Diketahui',
+          dock: item.landing_site?.site_name || '-',
+          type: 'Keberangkatan',
+          time: formatDateTime(item.departure_date, item.departure_time),
+          fishingGear: item.vessel?.fishing_gear || '-',
+          gt: item.vessel?.gt || 0,
+          vesselId: item.vessel_id
+        }))
+      }
+    }
 
     const allShips = [...arrivalsList, ...departuresList]
 
     if (userRole.value === 'umum') {
-      // Show latest 5 ships for public
       publicShips.value = allShips.slice(0, 5)
     }
 
     if (userRole.value === 'pengelola') {
-      // Group unique vessels for vessel switcher
-      const vesselMap = new Map()
-      allShips.forEach((ship: any) => {
-        if (!vesselMap.has(ship.vesselId)) {
-          vesselMap.set(ship.vesselId, ship)
+      // Fetch my managed vessels directly from database
+      try {
+        const resMyVessels = await fetch(`${API_URL}/vessels/my-vessels?status=all&per_page=100`, { headers })
+        if (resMyVessels.ok) {
+          const dataMyVessels = await resMyVessels.json()
+          if (dataMyVessels && dataMyVessels.status === 'success') {
+            const rawVessels = dataMyVessels.data.data || []
+            managedVessels.value = rawVessels.map((v: any) => ({
+              id: v.id,
+              name: v.vessel_name,
+              type: v.vessel_type || 'Kapal Motor',
+              fishingGear: v.fishing_gear || '-',
+              gt: v.gt || 0,
+              owner: v.owner_name || '-'
+            }))
+            
+            if (managedVessels.value.length > 0) {
+              const currentExists = managedVessels.value.some((v: any) => v.id === selectedVesselId.value)
+              if (!currentExists || selectedVesselId.value === 0) {
+                selectedVesselId.value = managedVessels.value[0].id
+              }
+            } else {
+              selectedVesselId.value = 0
+            }
+          }
         }
-      })
-      managedVessels.value = Array.from(vesselMap.values())
-      
-      if (managedVessels.value.length > 0) {
-        selectedVesselId.value = managedVessels.value[0].vesselId
+      } catch (err) {
+        console.error('Gagal mengambil data kapal kelolaan:', err)
       }
 
-      // Latest activity
-      if (allShips.length > 0) {
-        latestActivity.value = allShips[0]
+      // Latest activity for current selected vessel
+      const vesselShips = allShips.filter((ship: any) => ship.vesselId === selectedVesselId.value)
+      if (vesselShips.length > 0) {
+        latestActivity.value = vesselShips[0]
+      } else {
+        latestActivity.value = null
       }
     }
 
@@ -433,7 +677,13 @@ const fetchDashboardData = async () => {
   }
 }
 
-const currentVessel = computed(() => managedVessels.value.find((v: any) => v.vesselId === selectedVesselId.value))
+const currentVessel = computed(() => managedVessels.value.find((v: any) => v.id === selectedVesselId.value))
+
+const recentActivities = computed(() => {
+  return allActivities.value
+    .filter((act: any) => act.vesselId === selectedVesselId.value)
+    .slice(0, 5)
+})
 
 // Berita PPN Sibolga
 const beritaList = [

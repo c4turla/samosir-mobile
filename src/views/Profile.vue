@@ -72,7 +72,7 @@
           <p class="text-xs opacity-60 mt-1">Kapal Terdaftar</p>
         </div>
       </div>
-      <button class="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
+      <button @click="router.push({ name: 'ManageVessels' })" class="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
         <Maximize2 class="w-4 h-4" />
         <span>Buka Daftar QR Kapal</span>
       </button>
@@ -144,7 +144,6 @@ import {
   Maximize2,
   ChevronRight,
   Shield,
-  CreditCard,
   PenTool,
   Bell,
   LogOut,
@@ -155,20 +154,20 @@ import {
   CalendarDays,
   Fish,
   MessageCircle,
-  MapPin,
   Info
 } from 'lucide-vue-next'
 import { API_URL } from '@/config'
 
 const router = useRouter()
 const isDarkMode = ref(false)
-
 const isLoading = ref(true)
+
 const userProfile = ref({
   name: localStorage.getItem('userName') || '',
   email: '',
   role: localStorage.getItem('userRole') || 'umum',
-  photo: ''
+  photo: '',
+  signature: ''
 })
 
 const fetchProfile = async () => {
@@ -176,7 +175,6 @@ const fetchProfile = async () => {
     const token = localStorage.getItem('token')
     
     if (!token) {
-      // Public user without API token - just use localStorage data
       isLoading.value = false
       return
     }
@@ -198,7 +196,8 @@ const fetchProfile = async () => {
           name: userData.name || userProfile.value.name,
           email: userData.email || '',
           role: userData.role || userProfile.value.role,
-          photo: userData.photo || ''
+          photo: userData.photo || '',
+          signature: userData.signature || ''
         }
         localStorage.setItem('userName', userProfile.value.name)
         localStorage.setItem('userRole', userProfile.value.role)
@@ -216,9 +215,34 @@ const fetchProfile = async () => {
   }
 }
 
+const unreadNotificationsCount = ref(0)
+
+const fetchUnreadCount = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    const response = await fetch(`${API_URL}/notifications`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.ok) {
+      const result = await response.json()
+      unreadNotificationsCount.value = result.data?.unread_count || 0
+    }
+  } catch (error) {
+    console.error('Gagal mengambil data notifikasi:', error)
+  }
+}
+
 onMounted(() => {
   isDarkMode.value = document.documentElement.classList.contains('dark')
   fetchProfile()
+  fetchUnreadCount()
 })
 
 const formatRole = (role: string) => {
@@ -242,6 +266,7 @@ const handleLogout = () => {
   localStorage.removeItem('userRole')
   localStorage.removeItem('userName')
   localStorage.removeItem('token')
+  localStorage.removeItem('userId')
   router.push('/login')
 }
 
@@ -254,25 +279,58 @@ interface MenuItem {
   action: () => void
 }
 
-// Menu items for Pengelola
-const pengelolaMenuItems: MenuItem[] = [
-  { label: 'Informasi Armada', icon: Shield, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => {} },
-  { label: 'Tanda Tangan Digital', icon: PenTool, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-600 dark:text-amber-400', badge: 'Setup', action: () => {} },
-  { label: 'Notifikasi', icon: Bell, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', badge: '3', action: () => {} },
-  { label: 'Hubungi Support', icon: HelpCircle, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400', action: () => {} },
-]
-
-// Menu items for Umum
-const umumMenuItems: MenuItem[] = [
-  { label: 'Jadwal Kapal', icon: CalendarDays, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => router.push({ name: 'Schedule' }) },
-  { label: 'Komoditas Ikan', icon: Fish, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-600 dark:text-emerald-400', action: () => router.push({ name: 'Commodity' }) },
-  { label: 'Chat Pengelola', icon: MessageCircle, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', action: () => router.push({ name: 'Chat' }) },
-  { label: 'Notifikasi', icon: Bell, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-600 dark:text-amber-400', action: () => {} },
-  { label: 'Tentang PPN Sibolga', icon: Info, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400', action: () => router.push({ name: 'AboutPPN' }) },
-]
-
 const filteredMenuItems = computed<MenuItem[]>(() => {
-  return userProfile.value.role === 'pengelola_kapal' || userProfile.value.role === 'pengelola' ? pengelolaMenuItems : umumMenuItems
+  const badgeVal = unreadNotificationsCount.value > 0 ? String(unreadNotificationsCount.value) : undefined
+
+  if (userProfile.value.role === 'pengelola_kapal' || userProfile.value.role === 'pengelola') {
+    return [
+      { 
+        label: 'Kelola Kapal Kelolaan', 
+        icon: Shield, 
+        bg: 'bg-indigo-50 dark:bg-indigo-900/20', 
+        color: 'text-indigo-600 dark:text-indigo-400', 
+        action: () => { router.push({ name: 'ManageVessels' }) } 
+      },
+      { 
+        label: 'Tanda Tangan Digital', 
+        icon: PenTool, 
+        bg: 'bg-amber-50 dark:bg-amber-900/20', 
+        color: 'text-amber-600 dark:text-amber-400', 
+        badge: userProfile.value.signature ? 'Aktif' : 'Setup', 
+        action: () => { router.push({ name: 'SetupSignature' }) } 
+      },
+      { 
+        label: 'Notifikasi', 
+        icon: Bell, 
+        bg: 'bg-blue-50 dark:bg-blue-900/20', 
+        color: 'text-blue-600 dark:text-blue-400', 
+        badge: badgeVal, 
+        action: () => { router.push({ name: 'Notifications' }) } 
+      },
+      { 
+        label: 'Hubungi Support', 
+        icon: HelpCircle, 
+        bg: 'bg-slate-50 dark:bg-slate-800', 
+        color: 'text-slate-600 dark:text-slate-400', 
+        action: () => { router.push({ name: 'Support' }) } 
+      },
+    ]
+  } else {
+    return [
+      { label: 'Jadwal Kapal', icon: CalendarDays, bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-indigo-600 dark:text-indigo-400', action: () => router.push({ name: 'Schedule' }) },
+      { label: 'Komoditas Ikan', icon: Fish, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-600 dark:text-emerald-400', action: () => router.push({ name: 'Commodity' }) },
+      { label: 'Chat Pengelola', icon: MessageCircle, bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600 dark:text-blue-400', action: () => router.push({ name: 'Chat' }) },
+      { 
+        label: 'Notifikasi', 
+        icon: Bell, 
+        bg: 'bg-amber-50 dark:bg-amber-900/20', 
+        color: 'text-amber-600 dark:text-amber-400', 
+        badge: badgeVal, 
+        action: () => { router.push({ name: 'Notifications' }) } 
+      },
+      { label: 'Tentang PPN Sibolga', icon: Info, bg: 'bg-slate-50 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400', action: () => router.push({ name: 'AboutPPN' }) },
+    ]
+  }
 })
 </script>
 
