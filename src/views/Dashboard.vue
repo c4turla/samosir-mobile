@@ -443,22 +443,35 @@ const fetchDashboardData = async () => {
         console.error('Gagal mengambil data SPR:', err)
       }
 
-      const arrMapped = (dataArrivals.data?.data || []).map((item: any) => ({
-        id: `arr-${item.id}`,
-        vesselId: item.vessel_id,
-        title: 'E-Arrival',
-        subtitle: `Dermaga: ${item.landing_site?.site_name || '-'}`,
-        time: formatDateTime(item.arrival_date, item.arrival_time),
-        rawDate: item.created_at || item.arrival_date,
-        type: 'Kedatangan',
-        icon: LogIn,
-        iconBg: 'bg-emerald-50 dark:bg-emerald-950/20',
-        iconColor: 'text-emerald-600 dark:text-emerald-400',
-        statusLabel: item.approval_status === 1 ? 'Approved' : (item.approval_status === 2 ? 'Rejected' : 'Pending'),
-        statusClass: item.approval_status === 1 
+      const arrMapped = (dataArrivals.data?.data || []).map((item: any) => {
+        const isInspected = item.status === 'SELESAI' && Number(item.approval_status) === 0
+        const statusLabel = Number(item.approval_status) === 1 
+          ? 'Approved' 
+          : (Number(item.approval_status) === 2 
+            ? 'Rejected' 
+            : (isInspected ? 'Di Periksa' : 'Pending'))
+        const statusClass = Number(item.approval_status) === 1 
           ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400' 
-          : (item.approval_status === 2 ? 'bg-red-50 text-red-600 dark:bg-red-955/20 dark:text-red-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400')
-      }))
+          : (Number(item.approval_status) === 2 
+            ? 'bg-red-50 text-red-600 dark:bg-red-955/20 dark:text-red-400' 
+            : (isInspected 
+              ? 'bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400' 
+              : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400'))
+        return {
+          id: `arr-${item.id}`,
+          vesselId: item.vessel_id,
+          title: 'E-Arrival',
+          subtitle: `Dermaga: ${item.landing_site?.site_name || '-'}`,
+          time: formatDateTime(item.arrival_date, item.arrival_time),
+          rawDate: item.created_at || item.arrival_date,
+          type: 'Kedatangan',
+          icon: LogIn,
+          iconBg: 'bg-emerald-50 dark:bg-emerald-950/20',
+          iconColor: 'text-emerald-600 dark:text-emerald-400',
+          statusLabel,
+          statusClass
+        }
+      })
 
       const depMapped = (dataDepartures.data?.data || []).map((item: any) => ({
         id: `dep-${item.id}`,
@@ -535,12 +548,10 @@ const fetchDashboardData = async () => {
         rawDate: item.created_at || item.planned_departure_datetime,
         type: 'SPR Keberangkatan',
         icon: Compass,
-        iconBg: 'bg-amber-50 dark:bg-amber-955/20',
+        iconBg: 'bg-amber-50 dark:bg-amber-950/20',
         iconColor: 'text-amber-600 dark:text-amber-400',
-        statusLabel: item.status === 'approved' ? 'Approved' : (item.status === 'rejected' ? 'Rejected' : (item.status === 'processed' ? 'Diproses' : 'Pending')),
-        statusClass: item.status === 'approved' 
-          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400' 
-          : (item.status === 'rejected' ? 'bg-red-50 text-red-650 dark:bg-red-955/20 dark:text-red-400' : (item.status === 'processed' ? 'bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400'))
+        statusLabel: 'Diajukan',
+        statusClass: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
       }))
 
       const combinedActivities = [

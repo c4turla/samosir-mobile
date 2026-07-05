@@ -43,7 +43,7 @@
             class="w-full px-4 py-3.5 border border-gray-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 text-gray-955 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 flex justify-between items-center text-left"
           >
             <span>
-              {{ selectedVessel ? `${selectedVessel.vessel_name} (${selectedVessel.license_number})` : 'Cari & pilih kapal...' }}
+              {{ selectedVessel ? `${selectedVessel.vessel_name}` : 'Cari & pilih kapal...' }}
             </span>
             <ChevronDown class="w-4 h-4 text-gray-400" :class="{ 'transform rotate-180': isVesselDropdownOpen }" />
           </button>
@@ -196,19 +196,6 @@
           </div>
         </div>
 
-        <!-- SYAHBANDAR SELECT -->
-        <div>
-          <label class="text-[10px] font-bold text-gray-400 dark:text-gray-550 uppercase tracking-wider block mb-1.5">Syahbandar</label>
-          <select 
-            v-model="form.syahbandar"
-            class="w-full px-4 py-3.5 border border-gray-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 text-gray-950 dark:text-white text-xs focus:outline-none"
-          >
-            <option value="">Pilih Syahbandar</option>
-            <option v-for="user in syahbandarsList" :key="user.id" :value="user.name">
-              {{ user.name }}
-            </option>
-          </select>
-        </div>
 
         <!-- STATUS KEGIATAN -->
         <div class="space-y-4">
@@ -390,7 +377,6 @@ const landingSiteQuery = ref('')
 // Lists
 const vesselsList = ref<any[]>([])
 const landingSitesList = ref<any[]>([])
-const syahbandarsList = ref<any[]>([])
 
 // Selections
 const selectedVessel = ref<any | null>(null)
@@ -564,13 +550,6 @@ const loadInitialData = async () => {
     if (resSites.ok) {
       const dataS = await resSites.json()
       landingSitesList.value = dataS.data || []
-    }
-
-    // 3. Fetch syahbandars
-    const resSyahbandar = await fetch(`${API_URL}/syahbandars`, { headers })
-    if (resSyahbandar.ok) {
-      const dataSy = await resSyahbandar.json()
-      syahbandarsList.value = dataSy.data || []
     }
 
   } catch (err) {

@@ -192,11 +192,15 @@
     <Transition name="fade">
       <div v-if="isDetailModalOpen && selectedDetail" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" @click.self="closeDetailModal">
         <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] border border-gray-150 dark:border-slate-800 p-6 shadow-2xl flex flex-col max-h-[85vh] animate-in slide-in-from-bottom duration-250">
-          
-          <!-- Modal Header -->
+                    <!-- Modal Header -->
           <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
             <div>
-              <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">{{ selectedDetail.type }}</span>
+              <div class="flex items-center space-x-2">
+                <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">{{ selectedDetail.type }}</span>
+                <span :class="['px-2 py-0.5 rounded text-[9px] font-bold uppercase', selectedDetail.statusBg]">
+                  {{ selectedDetail.status }}
+                </span>
+              </div>
               <h3 class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{{ selectedDetail.id }}</h3>
             </div>
             <button 
@@ -211,9 +215,8 @@
           <div class="p-4 bg-gray-50 dark:bg-slate-950/40 rounded-3xl border border-gray-100 dark:border-slate-800/80 mb-5 space-y-3">
             <h4 class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status Alur Proses</h4>
             
-            <div class="relative pl-6 space-y-4">
-              <!-- Connector line -->
-              <div class="absolute left-2.5 top-2.5 bottom-2.5 w-0.5 bg-gray-200 dark:bg-slate-800"></div>
+            <div class="relative pl-6 space-y-4">              <!-- Connector line -->
+              <div v-if="selectedDetail.type !== 'SPR DEPARTURE'" class="absolute left-2.5 top-2.5 bottom-2.5 w-0.5 bg-gray-200 dark:bg-slate-800"></div>
               
               <!-- Step 1: Submitted -->
               <div class="relative flex items-start">
@@ -222,12 +225,14 @@
                 </div>
                 <div>
                   <h5 class="text-xs font-bold text-slate-800 dark:text-gray-200">Laporan Diajukan</h5>
-                  <p class="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">Laporan berhasil terkirim ke sistem.</p>
+                  <p class="text-[9px] text-gray-400 dark:text-gray-550 mt-0.5">
+                    {{ selectedDetail.type === 'SPR DEPARTURE' ? 'SPR Keberangkatan berhasil diajukan sebagai informasi.' : 'Laporan berhasil terkirim ke sistem.' }}
+                  </p>
                 </div>
               </div>
 
               <!-- Step 2: Verification -->
-              <div class="relative flex items-start">
+              <div v-if="selectedDetail.type !== 'SPR DEPARTURE'" class="relative flex items-start">
                 <div :class="['absolute -left-6 w-5 h-5 rounded-full flex items-center justify-center z-10 transition-colors duration-250', 
                   isStep2Completed ? 'bg-emerald-500 text-white' : (isStep2Pending ? 'bg-amber-500 text-white animate-pulse' : 'bg-gray-200 dark:bg-slate-800 text-gray-400')
                 ]">
@@ -235,21 +240,23 @@
                 </div>
                 <div>
                   <h5 class="text-xs font-bold" :class="isStep2Completed || isStep2Pending ? 'text-slate-800 dark:text-gray-200' : 'text-gray-400'">Verifikasi Petugas</h5>
-                  <p class="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">Sedang diverifikasi oleh Syahbandar/Petugas pelaksana.</p>
+                  <p class="text-[9px] text-gray-400 dark:text-gray-555 mt-0.5">
+                    {{ selectedDetail.type === 'E-ARRIVAL' && selectedDetail.rawItem.status === 'SELESAI' ? 'Laporan telah diperiksa oleh petugas.' : 'Sedang diverifikasi oleh Syahbandar/Petugas pelaksana.' }}
+                  </p>
                 </div>
               </div>
 
               <!-- Step 3: Approved / Selesai -->
-              <div class="relative flex items-start">
+              <div v-if="selectedDetail.type !== 'SPR DEPARTURE'" class="relative flex items-start">
                 <div :class="['absolute -left-6 w-5 h-5 rounded-full flex items-center justify-center z-10 transition-colors duration-250', 
-                  isStep3Completed ? 'bg-emerald-500 text-white' : (isStep3Rejected ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-400')
+                  isStep3Completed ? 'bg-emerald-500 text-white' : (isStep3Rejected ? 'bg-red-500 text-white' : (isStep3Pending ? 'bg-amber-500 text-white animate-pulse' : 'bg-gray-200 dark:bg-slate-800 text-gray-400'))
                 ]">
                   <component :is="isStep3Completed ? CheckCircle2 : (isStep3Rejected ? AlertCircle : Clock)" class="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h5 class="text-xs font-bold" :class="isStep3Completed ? 'text-slate-800 dark:text-gray-200' : (isStep3Rejected ? 'text-red-500' : 'text-gray-400')">Persetujuan Selesai</h5>
-                  <p class="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
-                    {{ isStep3Completed ? 'Laporan disetujui & selesai diproses.' : (isStep3Rejected ? 'Laporan ditolak / dibatalkan.' : 'Proses persetujuan akhir.') }}
+                  <h5 class="text-xs font-bold" :class="isStep3Completed || isStep3Pending ? 'text-slate-800 dark:text-gray-200' : (isStep3Rejected ? 'text-red-500' : 'text-gray-400')">Persetujuan Selesai</h5>
+                  <p class="text-[9px] text-gray-400 dark:text-gray-550 mt-0.5">
+                    {{ isStep3Completed ? 'Laporan disetujui & selesai diproses.' : (isStep3Rejected ? 'Laporan ditolak / dibatalkan.' : (isStep3Pending ? 'Sedang menunggu persetujuan akhir oleh Syahbandar.' : 'Proses persetujuan akhir.')) }}
                   </p>
                 </div>
               </div>
@@ -438,23 +445,7 @@
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Notes Section -->
-            <div v-if="selectedDetail.rawItem.notes || (selectedDetail.rawItem.additional_notes && selectedDetail.type !== 'SPR DEPARTURE')" class="mt-4 pt-2 border-t border-gray-100 dark:border-slate-800/50">
-              <span class="text-gray-455 dark:text-gray-555 block text-[9px] uppercase font-bold mb-1.5">Catatan Tambahan</span>
-              <p class="text-[11px] text-gray-600 dark:text-gray-400 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-gray-100 dark:border-slate-800/80 leading-relaxed italic">
-                "{{ selectedDetail.rawItem.notes || selectedDetail.rawItem.additional_notes }}"
-              </p>
-            </div>
-            <div v-if="selectedDetail.type === 'SPR DEPARTURE' && parseNotes(selectedDetail.rawItem.additional_notes)?.catatan" class="mt-4 pt-2 border-t border-gray-100 dark:border-slate-800/50">
-              <span class="text-gray-455 dark:text-gray-555 block text-[9px] uppercase font-bold mb-1.5">Catatan Tambahan</span>
-              <p class="text-[11px] text-gray-600 dark:text-gray-400 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-gray-100 dark:border-slate-800/80 leading-relaxed italic">
-                "{{ parseNotes(selectedDetail.rawItem.additional_notes)?.catatan }}"
-              </p>
-            </div>
-
-            <!-- 5. SPR DEPARTURE DETAILS -->
+            </div>            <!-- 5. SPR DEPARTURE DETAILS -->
             <div v-else-if="selectedDetail.type === 'SPR DEPARTURE'" class="space-y-3">
               <div class="grid grid-cols-2 gap-3 text-xs">
                 <div>
@@ -482,7 +473,7 @@
               <!-- Muatan section -->
               <div class="mt-4">
                 <span class="text-gray-455 dark:text-gray-555 block text-[9px] uppercase font-bold mb-2">Muatan Kapal</span>
-                <div v-if="parseMuatan(selectedDetail.rawItem.muatan)" class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-955 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800/80 text-center text-xs">
+                <div v-if="parseMuatan(selectedDetail.rawItem.muatan)" class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800/80 text-center text-xs">
                   <div>
                     <span class="text-[8px] text-gray-400 block font-semibold">BBM</span>
                     <span class="font-bold text-gray-800 dark:text-gray-200">{{ parseMuatan(selectedDetail.rawItem.muatan)?.bbm }}</span>
@@ -496,7 +487,7 @@
                     <span class="font-bold text-gray-800 dark:text-gray-200">{{ parseMuatan(selectedDetail.rawItem.muatan)?.es }}</span>
                   </div>
                 </div>
-                <div v-else class="bg-slate-50 dark:bg-slate-955 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800/80 text-xs text-gray-855 dark:text-gray-200">
+                <div v-else class="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800/80 text-xs text-gray-855 dark:text-gray-200">
                   {{ selectedDetail.rawItem.muatan || '-' }}
                 </div>
               </div>
@@ -504,7 +495,7 @@
               <!-- CP & Physical Checks -->
               <div class="mt-4 pt-3 border-t border-gray-100 dark:border-slate-800/50">
                 <span class="text-gray-455 dark:text-gray-500 block text-[9px] uppercase font-bold mb-2">Check Point & Cek Fisik</span>
-                <div class="bg-slate-50 dark:bg-slate-955 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800/80 space-y-3 text-xs">
+                <div class="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-800/80 space-y-3 text-xs">
                   <div>
                     <span class="text-[9px] text-gray-450 uppercase block font-bold">CP Masuk (Kedatangan)</span>
                     <span class="font-medium text-gray-800 dark:text-gray-200">{{ selectedDetail.rawItem.cp_arrival_date ? formatDateTimeHuman(selectedDetail.rawItem.cp_arrival_date) : '-' }}</span>
@@ -528,7 +519,20 @@
                 </div>
               </div>
             </div>
-            
+
+            <!-- Notes Section -->
+            <div v-if="selectedDetail.rawItem.notes || (selectedDetail.rawItem.additional_notes && selectedDetail.type !== 'SPR DEPARTURE')" class="mt-4 pt-2 border-t border-gray-100 dark:border-slate-800/50">
+              <span class="text-gray-455 dark:text-gray-555 block text-[9px] uppercase font-bold mb-1.5">Catatan Tambahan</span>
+              <p class="text-[11px] text-gray-600 dark:text-gray-400 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-gray-100 dark:border-slate-800/80 leading-relaxed italic">
+                "{{ selectedDetail.rawItem.notes || selectedDetail.rawItem.additional_notes }}"
+              </p>
+            </div>
+            <div v-if="selectedDetail.type === 'SPR DEPARTURE' && parseNotes(selectedDetail.rawItem.additional_notes)?.catatan" class="mt-4 pt-2 border-t border-gray-100 dark:border-slate-800/50">
+              <span class="text-gray-455 dark:text-gray-555 block text-[9px] uppercase font-bold mb-1.5">Catatan Tambahan</span>
+              <p class="text-[11px] text-gray-600 dark:text-gray-400 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-gray-100 dark:border-slate-800/80 leading-relaxed italic">
+                "{{ parseNotes(selectedDetail.rawItem.additional_notes)?.catatan }}"
+              </p>
+            </div>
           </div>
 
           <!-- Modal Action -->
@@ -625,7 +629,9 @@ const isStep2Completed = computed(() => {
   if (!selectedDetail.value) return false
   const status = selectedDetail.value.status
   if (selectedDetail.value.type === 'E-ARRIVAL' || selectedDetail.value.type === 'E-DEPARTURE') {
-    return selectedDetail.value.rawItem.approval_status === 1 || selectedDetail.value.rawItem.approval_status === 2
+    return Number(selectedDetail.value.rawItem.approval_status) === 1 || 
+           Number(selectedDetail.value.rawItem.approval_status) === 2 || 
+           selectedDetail.value.rawItem.status === 'SELESAI'
   }
   return status === 'Diproses' || status === 'Approved' || status === 'Cancelled' || status === 'Rejected'
 })
@@ -634,7 +640,8 @@ const isStep2Pending = computed(() => {
   if (!selectedDetail.value) return false
   const status = selectedDetail.value.status
   if (selectedDetail.value.type === 'E-ARRIVAL' || selectedDetail.value.type === 'E-DEPARTURE') {
-    return selectedDetail.value.rawItem.approval_status === 0
+    return Number(selectedDetail.value.rawItem.approval_status) === 0 && 
+           selectedDetail.value.rawItem.status !== 'SELESAI'
   }
   return status === 'Pending'
 })
@@ -643,7 +650,7 @@ const isStep3Completed = computed(() => {
   if (!selectedDetail.value) return false
   const status = selectedDetail.value.status
   if (selectedDetail.value.type === 'E-ARRIVAL' || selectedDetail.value.type === 'E-DEPARTURE') {
-    return selectedDetail.value.rawItem.approval_status === 1
+    return Number(selectedDetail.value.rawItem.approval_status) === 1
   }
   return status === 'Approved'
 })
@@ -652,9 +659,18 @@ const isStep3Rejected = computed(() => {
   if (!selectedDetail.value) return false
   const status = selectedDetail.value.status
   if (selectedDetail.value.type === 'E-ARRIVAL' || selectedDetail.value.type === 'E-DEPARTURE') {
-    return selectedDetail.value.rawItem.approval_status === 2
+    return Number(selectedDetail.value.rawItem.approval_status) === 2
   }
   return status === 'Cancelled' || status === 'Rejected'
+})
+
+const isStep3Pending = computed(() => {
+  if (!selectedDetail.value) return false
+  const status = selectedDetail.value.status
+  if (selectedDetail.value.type === 'E-ARRIVAL' || selectedDetail.value.type === 'E-DEPARTURE') {
+    return isStep2Completed.value && Number(selectedDetail.value.rawItem.approval_status) === 0
+  }
+  return isStep2Completed.value && status === 'Diproses'
 })
 
 const checkDocuments = async () => {
@@ -820,17 +836,39 @@ const fetchHistory = async () => {
     // Map Arrivals
     const arrivalsMapped = arrivalsData.map(item => {
       const vesselName = item.vessel ? item.vessel.vessel_name : 'Kapal'
-      const statusLabel = item.approval_status === 1 ? 'Approved' : (item.approval_status === 2 ? 'Rejected' : 'Pending')
       
-      if (item.approval_status === 1) approved++
-      else if (item.approval_status === 0) pending++
+      const isInspected = item.status === 'SELESAI' && Number(item.approval_status) === 0;
+      const statusLabel = Number(item.approval_status) === 1 
+        ? 'Approved' 
+        : (Number(item.approval_status) === 2 
+          ? 'Rejected' 
+          : (isInspected ? 'Di Periksa' : 'Pending'))
+      
+      if (Number(item.approval_status) === 1) approved++
+      else if (Number(item.approval_status) === 0) pending++
 
-      const statusBg = item.approval_status === 1 
+      const statusBg = Number(item.approval_status) === 1 
         ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400' 
-        : (item.approval_status === 2 ? 'bg-red-50 text-red-600 dark:bg-red-955/20 dark:text-red-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400')
+        : (Number(item.approval_status) === 2 
+          ? 'bg-red-50 text-red-600 dark:bg-red-955/20 dark:text-red-400' 
+          : (isInspected 
+            ? 'bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400' 
+            : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400'))
       
-      const dotBg = item.approval_status === 1 ? 'bg-emerald-100 dark:bg-emerald-950/30' : (item.approval_status === 2 ? 'bg-red-100 dark:bg-red-950/30' : 'bg-amber-100 dark:bg-amber-950/30')
-      const dotText = item.approval_status === 1 ? 'text-emerald-600 dark:text-emerald-400' : (item.approval_status === 2 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400')
+      const dotBg = Number(item.approval_status) === 1 
+        ? 'bg-emerald-100 dark:bg-emerald-950/30' 
+        : (Number(item.approval_status) === 2 
+          ? 'bg-red-100 dark:bg-red-950/30' 
+          : (isInspected 
+            ? 'bg-blue-100 dark:bg-blue-950/30' 
+            : 'bg-amber-100 dark:bg-amber-950/30'))
+      const dotText = Number(item.approval_status) === 1 
+        ? 'text-emerald-600 dark:text-emerald-400' 
+        : (Number(item.approval_status) === 2 
+          ? 'text-red-600 dark:text-red-400' 
+          : (isInspected 
+            ? 'text-blue-600 dark:text-blue-400' 
+            : 'text-amber-600 dark:text-amber-400'))
 
       return {
         type: 'E-ARRIVAL',
@@ -840,7 +878,11 @@ const fetchHistory = async () => {
         id: item.status || 'TAMBAT',
         status: statusLabel,
         statusBg: statusBg,
-        icon: item.approval_status === 1 ? CheckCircle2 : (item.approval_status === 2 ? AlertCircle : Clock),
+        icon: Number(item.approval_status) === 1 
+          ? CheckCircle2 
+          : (Number(item.approval_status) === 2 
+            ? AlertCircle 
+            : (isInspected ? CheckCircle2 : Clock)),
         dotBg: dotBg,
         dotText: dotText,
         rawDate: item.created_at || item.arrival_date,
@@ -950,17 +992,12 @@ const fetchHistory = async () => {
     // Map SPR Departures
     const sprMapped = sprDeparturesData.map(item => {
       const vesselName = item.vessel ? item.vessel.vessel_name : 'Kapal'
-      const statusLabel = item.status === 'approved' ? 'Approved' : (item.status === 'rejected' ? 'Rejected' : (item.status === 'processed' ? 'Diproses' : 'Pending'))
-      
-      if (item.status === 'approved') approved++
-      else if (item.status === 'pending' || item.status === 'processed') pending++
+      const statusLabel = 'Diajukan'
+      approved++
 
-      const statusBg = item.status === 'approved' 
-        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-955/20 dark:text-emerald-400' 
-        : (item.status === 'rejected' ? 'bg-red-50 text-red-650 dark:bg-red-955/20 dark:text-red-400' : (item.status === 'processed' ? 'bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400'))
-      
-      const dotBg = item.status === 'approved' ? 'bg-emerald-100 dark:bg-emerald-950/30' : (item.status === 'rejected' ? 'bg-red-100 dark:bg-red-950/30' : 'bg-amber-100 dark:bg-amber-950/30')
-      const dotText = item.status === 'approved' ? 'text-emerald-600 dark:text-emerald-400' : (item.status === 'rejected' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400')
+      const statusBg = 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
+      const dotBg = 'bg-emerald-100 dark:bg-emerald-950/30'
+      const dotText = 'text-emerald-600 dark:text-emerald-400'
 
       return {
         type: 'SPR DEPARTURE',
@@ -970,7 +1007,7 @@ const fetchHistory = async () => {
         id: `SPR-${String(item.id).padStart(5, '0')}`,
         status: statusLabel,
         statusBg: statusBg,
-        icon: item.status === 'approved' ? CheckCircle2 : (item.status === 'rejected' ? AlertCircle : Clock),
+        icon: CheckCircle2,
         dotBg: dotBg,
         dotText: dotText,
         rawDate: item.created_at || item.planned_departure_datetime,
