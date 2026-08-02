@@ -78,18 +78,7 @@ const slides = [
   {
     title: 'Selamat Datang di SAMOSIR',
     description: 'Aplikasi monitoring dan operasional Pelabuhan Perikanan Nusantara Sibolga yang membantu Anda dalam aktivitas sehari-hari.',
-    icon: `<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="40" cy="40" r="35" fill="url(#icon1)" opacity="0.2"/>
-      <path d="M40 15L50 35H30L40 15Z" fill="#0ea5e9"/>
-      <rect x="25" y="40" width="30" height="25" rx="4" fill="#6366f1"/>
-      <circle cx="40" cy="52" r="6" fill="#fff"/>
-      <defs>
-        <linearGradient id="icon1" x1="0" y1="0" x2="80" y2="80">
-          <stop offset="0%" stop-color="#0ea5e9"/>
-          <stop offset="100%" stop-color="#6366f1"/>
-        </linearGradient>
-      </defs>
-    </svg>`
+    icon: `<img src="/logobaru.webp" alt="SAMOSIR Logo" />`
   },
   {
     title: 'Jadwal Kapal & Perjalanan',
@@ -242,9 +231,11 @@ const finishOnboarding = () => {
   height: 100%;
 }
 
-.onboarding-icon :deep(svg) {
+.onboarding-icon :deep(svg),
+.onboarding-icon :deep(img) {
   width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 
 .onboarding-title {

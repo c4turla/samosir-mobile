@@ -1,0 +1,9 @@
+{
+  "api_url": "https://kendariweb-samosir-uat.q00ohl.easypanel.host/api/v1",
+  "app_base_url": "https://kendariweb-samosir-uat.q00ohl.easypanel.host",
+  "reverb_app_key": "jibd7mc5pv0mllkmefqf",
+  "reverb_host": "kendariweb-samosir-uat.q00ohl.easypanel.host",
+  "reverb_port": "443",
+  "reverb_scheme": "https"
+}
+
